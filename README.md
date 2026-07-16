@@ -142,6 +142,45 @@ case-insensitively.
 Deleting a permission revokes it from every role that held it; the roles survive. Any endpoint gated
 on the deleted code then denies everyone — `seed_data` restores the catalogue.
 
+## Assigning roles to users
+
+One endpoint, three operations, split by HTTP verb. All require `role.manage`.
+
+| Method | Endpoint | Does |
+| --- | --- | --- |
+| POST | `/api/v1/assign-role/` | **Adds** roles, keeping the ones already held |
+| PUT | `/api/v1/assign-role/` | **Replaces** — the user ends up with exactly the listed roles |
+| DELETE | `/api/v1/assign-role/` | **Removes** the listed roles, leaving the rest |
+
+All three take the same body:
+
+```json
+{ "user": "<user-uuid>", "roles": ["<role-uuid>", "<role-uuid>"] }
+```
+
+and answer with the resulting state plus what changed:
+
+```json
+{
+  "user": { "id": "…", "email": "john@x.com", "full_name": "John Doe", "is_active": true },
+  "roles": ["Employee", "Manager"],
+  "added": ["Employee"],
+  "already_assigned": ["Manager"]
+}
+```
+
+PUT reports `added` / `removed` / `unchanged`; DELETE reports `removed` / `not_assigned`.
+
+**Idempotent.** Assigning a role the user already holds, or removing one they never had, is a no-op
+reported in the response rather than an error — so retries are safe.
+
+**Validation.** The user and every role must exist, ids may not repeat within one request, and
+`roles` may not be empty (except on PUT, where an empty list is how you strip every role). A single
+unknown id rejects the whole request: the writes are transactional, so a half-valid payload lands
+nothing.
+
+
+
 ## RBAC
 
 Authorization is driven by permissions the user holds through their roles:

@@ -182,7 +182,29 @@ roles).
       compare codes by exact string, so a stored `Mock.View` could never match anything the API asks
       for. `id`/`roles`/`created_at`/`updated_at` are read-only.
 - [x] **E14e** — Documented in Swagger per action, including 401/403.
-- [ ] **E15** — `POST /assign-role` ✅ `role.update` — body `{"user":1,"roles":[2,3]}`
+Assign-role **DONE** — `APIView` at `src/api/user/views/assign_role_views.py`, routed at
+`/api/v1/assign-role/`. All three operations ride one endpoint, split by verb. Gated on
+`role.manage`.
+
+- [x] **E15** — `POST /api/v1/assign-role/` ✅ `role.manage` → 200. **Adds** roles, keeping existing
+      ones. Body `{"user": "<uuid>", "roles": ["<uuid>", ...]}`.
+      ⚠️ The assignment's example body is `{"user":1,"roles":[2,3]}` — **integers**. UUIDs are used
+      because the owner specified UUID pks for both `User` and `Role` (SPEC D3 / rbac step).
+- [x] **E15b** — `PUT /api/v1/assign-role/` ✅ `role.manage` → 200. **Replaces** the user's roles
+      with exactly the given list. An empty list strips every role (POST/DELETE reject empty).
+- [x] **E15c** — `DELETE /api/v1/assign-role/` ✅ `role.manage` → 200 with a body (not 204, since the
+      spec asks for clean JSON responses). **Removes** the given roles, leaving the rest.
+- [x] **E15d** — Validation: user must exist, every role must exist, no duplicate ids in the payload,
+      role list non-empty (except on PUT). One unknown id rejects the whole request — the writes are
+      wrapped in `transaction.atomic`, so a partially-valid payload lands nothing.
+- [x] **E15e** — Duplicates prevented two ways: an already-held role is a **no-op** reported under
+      `already_assigned` rather than an error, and `bulk_create(ignore_conflicts=True)` keeps a
+      concurrent identical request from turning the unique constraint into a 500.
+- [x] **E15f** — Responses report the resulting state plus what changed:
+      `{user: {...}, roles: [...], added: [...], already_assigned: [...]}` (POST),
+      `+ removed/unchanged` (PUT), `{removed, not_assigned}` (DELETE).
+- [x] **E15g** — `clear_permission_cache()` is called after every mutation.
+- [x] **E15h** — Documented in Swagger per verb, including 400/401/403.
 - [ ] **E16** — `POST /assign-permission` ✅ `permission.update` — body
       `{"role":2,"permissions":[5,6,7]}`
 
