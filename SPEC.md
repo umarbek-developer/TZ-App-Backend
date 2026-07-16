@@ -118,10 +118,10 @@ Helpers in `src/apps/rbac/services.py`; permission classes in `src/apps/rbac/per
       `test_resolution_is_a_single_query_regardless_of_role_count`, `test_repeat_lookups_hit_the_cache`.
 - [x] **Z9** — Inactive users hold nothing even if their roles grant codes
       (`test_inactive_user_is_denied_even_holding_the_code`).
-- [ ] **Z10** — ⚠️ **`is_superuser` does NOT bypass permission checks** (SPEC Q9, still unanswered).
-      Permissions come only from the database, per *"check permissions using the database"*.
-      **Consequence:** the existing `admin@gmail.com` superuser holds **no roles**, so it will get
-      403 on every gated endpoint once the APIs exist. Needs either a bypass or an Admin-role grant.
+- [x] **Z10** — ✅ **Answers Q9.** `is_superuser` does **not** bypass permission checks; authorization
+      is purely database-driven. Owner's decision: the admin's power comes from the seeded Admin role
+      instead (S2), keeping `User → Roles → Permissions` the only authorization path. A superuser
+      holding no roles is denied every gated endpoint — by design.
 
 ---
 
@@ -168,10 +168,10 @@ All at `/api/v1/…`, implemented in `src/api/auth/`.
 - [x] **S1** — `python manage.py seed_data`, at
       `src/apps/rbac/management/commands/seed_data.py` (placed with the models it seeds rather than
       in the generic `apps/utils/` slot).
-- [ ] **S2** — ⚠️ **NOT DONE — administrator user `admin@mail.com` / `password123` was not
-      created.** The owner's seed instruction listed only roles, permissions and grants; the
-      assignment's Seed Data section also calls for this account. Deliberately not invented — see
-      §9 Q12.
+- [x] **S2** — Administrator seeded as **`admin@gmail.com` / `admin123`** (owner's choice, per the
+      README — deliberately *not* the assignment's `admin@mail.com` / `password123`). Created as a
+      superuser **and granted the Admin role**, which is what actually confers its permissions.
+      Idempotent: an existing account keeps its password and only has its flags/role ensured.
 - [x] **S3** — Roles: `Admin`, `Manager`, `Employee`, `Guest`.
 - [x] **S4** — Permissions, **8 codes as re-specified by the owner**: `user.view`, `user.update`,
       `user.delete`, `role.view`, `role.manage`, `permission.view`, `permission.manage`, `mock.view`.
@@ -237,16 +237,17 @@ All at `/api/v1/…`, implemented in `src/api/auth/`.
 
 - **Q4** — Keep `django.contrib.admin` + jazzmin, or drop them? Now lower-stakes: `AbstractUser` is
   staying, so `UserAdmin` still works. Default is to keep.
-- **Q6** — `user.create`: in the Database-Design permission examples, absent from Seed Data. Seed 8
-  codes or 9?
+- **Q6** — ✅ **Answered.** 8 codes; `user.create` is not seeded.
 - **Q7** — There are **no `/users` endpoints** in the API Summary, yet `user.view`/`user.update`/
   `user.delete` are seeded. Are user-management endpoints expected, or are these placeholders? As
   written they are unreachable.
-- **Q8** — Does registration auto-assign a default role (e.g. `Guest`)? Currently it assigns none.
-- **Q9** — Does `is_superuser = True` bypass permission checks, or must Admin's power come only from
-  seeded role→permission rows?
-- **Q10** — Seed admin password `password123` fails the `AUTH_PASSWORD_VALIDATORS` now enforced at
-  registration (too common / no symbol). Moot unless Q12 is answered yes.
+- **Q8** — Does registration auto-assign a default role (e.g. `Guest`)? Currently it assigns none, so
+  **every registered user is denied every permission-gated endpoint** until given a role by hand.
+- **Q9** — ✅ **Answered.** No superuser bypass; see Z10.
+- **Q10** — ⚠️ The seeded admin password `admin123` fails the `AUTH_PASSWORD_VALIDATORS` enforced at
+  registration (too short / too common / no symbol). The seed bypasses the serializer so it works,
+  but the same password could not be used to register. Accepted for now.
+- **Q12** — ✅ **Answered.** Seed creates `admin@gmail.com` / `admin123` (S2).
 - **Q11** — ✅ **Answered by implementation.** `Role.name` and `Permission.code` are unique, and both
   join tables carry `UniqueConstraint`s.
 - **Q12** — **The seed does not create the `admin@mail.com` / `password123` administrator.** The

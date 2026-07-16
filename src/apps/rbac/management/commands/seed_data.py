@@ -1,7 +1,17 @@
+from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from apps.rbac.models import Permission, Role, RolePermission
+from apps.rbac.models import Permission, Role, RolePermission, UserRole
+
+User = get_user_model()
+
+# The seeded administrator. Authorisation is purely database-driven — is_superuser
+# grants nothing on its own — so this account is useful only because it holds the
+# Admin role, which carries every permission.
+ADMIN_EMAIL = 'admin@gmail.com'
+ADMIN_PASSWORD = 'admin123'
+ADMIN_ROLE = 'Admin'
 
 # The declared catalogue. This module is the source of truth for it: re-running the
 # command reconciles the database back to what is written here.
@@ -63,6 +73,7 @@ class Command(BaseCommand):
         permissions = self._seed_permissions()
         roles = self._seed_roles()
         self._seed_grants(roles, permissions, prune=prune)
+        self._seed_admin(roles)
 
         self.stdout.write(self.style.SUCCESS('\nSeeding complete.'))
         self._summarise(roles)
@@ -111,6 +122,37 @@ class Command(BaseCommand):
             if prune:
                 self._prune_grants(role, codes)
 
+    def _seed_admin(self, roles):
+        self.stdout.write('\nAdministrator:')
+        user = User.objects.filter(email__iexact=ADMIN_EMAIL).first()
+
+        if user is None:
+            user = User.objects.create_superuser(
+                email=ADMIN_EMAIL,
+                password=ADMIN_PASSWORD,
+                first_name='Admin',
+                last_name='User',
+            )
+            self._report(f'{ADMIN_EMAIL} (superuser)', True)
+        else:
+            # Re-activate a soft-deleted or demoted admin, but never touch the
+            # password: re-seeding must not silently reset a changed credential.
+            flags = ('is_superuser', 'is_staff', 'is_active')
+            repaired = [f for f in flags if not getattr(user, f)]
+            for field in repaired:
+                setattr(user, field, True)
+            if repaired:
+                user.save(update_fields=repaired)
+                self.stdout.write(
+                    self.style.WARNING(f'  repaired {ADMIN_EMAIL} ({", ".join(repaired)})')
+                )
+            else:
+                self._report(f'{ADMIN_EMAIL} (superuser)', False)
+
+        _, created = UserRole.objects.get_or_create(user=user, role=roles[ADMIN_ROLE])
+        self._report(f'{ADMIN_EMAIL} -> {ADMIN_ROLE}', created)
+        return user
+
     def _prune_grants(self, role, keep_codes):
         extra = RolePermission.objects.filter(role=role).exclude(permission__code__in=keep_codes)
         for grant in extra:
@@ -136,3 +178,4 @@ class Command(BaseCommand):
                 )
             )
             self.stdout.write(f'  {name:<9} {", ".join(codes) if codes else "(none)"}')
+        self.stdout.write(f'\nAdministrator login: {ADMIN_EMAIL} / {ADMIN_PASSWORD}')

@@ -1,9 +1,13 @@
 # TZ-App-Backend
 
-Email: admin@gmail.com
-Password: admin123
-
 A Django REST API with JWT authentication and role-based access control (RBAC).
+
+Seeded administrator — created by `python manage.py seed_data` (see below):
+
+```
+Email:    admin@gmail.com
+Password: admin123
+```
 
 ## Running locally
 
@@ -106,6 +110,32 @@ system.
 The 401/403 split is deliberate: **401** means *we do not know who you are*; **403** means *we know
 who you are and you may not do this*.
 
+In code — helpers in `apps/rbac/services.py`, permission classes in `apps/rbac/permissions.py`:
+
+```python
+from apps.rbac.permissions import HasPermission, require_permissions
+
+class MockProjectsView(APIView):
+    permission_classes = [require_permissions('mock.view')]
+
+class RoleListView(APIView):                 # equivalent, declared on the view
+    permission_classes = [HasPermission]
+    required_permissions = 'role.view'
+
+require_permissions('role.view', 'role.manage')                    # needs both
+require_permissions('role.view', 'role.manage', require_all=False)  # needs either
+```
+
+```python
+from apps.rbac.services import get_user_permission_codes, user_has_permission
+
+user_has_permission(request.user, 'mock.view')   # -> bool
+get_user_permission_codes(request.user)          # -> frozenset of codes
+```
+
+Resolving a user's permissions costs **one query** however many roles they hold, and the result is
+memoised on the user instance for the rest of the request. `is_superuser` is not consulted.
+
 ## Seed command
 
 ```bash
@@ -113,8 +143,8 @@ cd src
 python manage.py seed_data
 ```
 
-Creates four roles, eight permissions, and the grants between them. **Idempotent** — running it any
-number of times reuses existing rows and never creates duplicates.
+Creates four roles, eight permissions, the grants between them, and the administrator account.
+**Idempotent** — running it any number of times reuses existing rows and never creates duplicates.
 
 Roles and their permissions after seeding:
 
@@ -127,6 +157,12 @@ Roles and their permissions after seeding:
 
 The eight permission codes: `user.view`, `user.update`, `user.delete`, `role.view`, `role.manage`,
 `permission.view`, `permission.manage`, `mock.view`.
+
+The command also creates `admin@gmail.com` / `admin123` as a superuser **and grants it the Admin
+role**. That grant is what gives the account its power: authorization is decided purely by the RBAC
+tables, and `is_superuser` confers no API permissions on its own — a superuser holding no roles is
+denied every permission-gated endpoint. If the account already exists, the command leaves its
+password alone and only ensures the flags and the role.
 
 The catalogue in `apps/rbac/management/commands/seed_data.py` is the source of truth: re-running the
 command restores any role/permission description that was edited elsewhere, and re-creates any

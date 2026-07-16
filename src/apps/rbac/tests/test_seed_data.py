@@ -3,9 +3,14 @@ from io import StringIO
 import pytest
 from django.core.management import call_command
 
-from apps.rbac.models import Permission, Role, RolePermission
+from apps.rbac.models import Permission, Role, RolePermission, UserRole
+from apps.rbac.services import get_user_permission_codes
+from apps.users.models import User
 
 pytestmark = pytest.mark.django_db
+
+ADMIN_EMAIL = 'admin@gmail.com'
+ADMIN_PASSWORD = 'admin123'
 
 EXPECTED_CODES = {
     'user.view',
@@ -93,7 +98,13 @@ def test_guest_receives_nothing():
 
 def test_running_twice_creates_no_duplicates():
     seed()
-    counts = (Role.objects.count(), Permission.objects.count(), RolePermission.objects.count())
+    counts = (
+        Role.objects.count(),
+        Permission.objects.count(),
+        RolePermission.objects.count(),
+        User.objects.count(),
+        UserRole.objects.count(),
+    )
 
     seed()
 
@@ -101,6 +112,8 @@ def test_running_twice_creates_no_duplicates():
         Role.objects.count(),
         Permission.objects.count(),
         RolePermission.objects.count(),
+        User.objects.count(),
+        UserRole.objects.count(),
     ) == counts
 
 
@@ -157,6 +170,88 @@ def test_seed_coexists_with_preexisting_roles():
 
     assert Role.objects.filter(name='Admin').count() == 1
     assert codes_for('Admin') == EXPECTED_CODES
+
+
+# --- administrator -----------------------------------------------------------
+
+
+def test_seed_creates_the_administrator():
+    seed()
+
+    admin = User.objects.get(email=ADMIN_EMAIL)
+    assert admin.is_superuser is True
+    assert admin.is_staff is True
+    assert admin.is_active is True
+
+
+def test_administrator_can_authenticate_with_the_documented_password():
+    seed()
+
+    assert User.objects.get(email=ADMIN_EMAIL).check_password(ADMIN_PASSWORD)
+
+
+def test_administrator_holds_the_admin_role():
+    seed()
+
+    admin = User.objects.get(email=ADMIN_EMAIL)
+    assert UserRole.objects.filter(user=admin, role__name='Admin').exists()
+
+
+def test_administrator_resolves_every_permission():
+    """The point of the account: power comes from the role, not from is_superuser."""
+    seed()
+
+    admin = User.objects.get(email=ADMIN_EMAIL)
+    assert get_user_permission_codes(admin) == EXPECTED_CODES
+
+
+def test_seeding_twice_does_not_duplicate_the_administrator():
+    seed()
+    seed()
+
+    assert User.objects.filter(email=ADMIN_EMAIL).count() == 1
+    assert UserRole.objects.filter(user__email=ADMIN_EMAIL).count() == 1
+
+
+def test_seed_does_not_reset_an_existing_administrator_password():
+    seed()
+    admin = User.objects.get(email=ADMIN_EMAIL)
+    admin.set_password('SomethingElse123!')
+    admin.save()
+
+    seed()
+
+    admin.refresh_from_db()
+    # Re-seeding must not silently undo a deliberately changed credential.
+    assert admin.check_password('SomethingElse123!')
+    assert not admin.check_password(ADMIN_PASSWORD)
+
+
+def test_seed_grants_the_admin_role_to_a_preexisting_administrator():
+    User.objects.create_superuser(email=ADMIN_EMAIL, password=ADMIN_PASSWORD, first_name='A')
+
+    seed()
+
+    admin = User.objects.get(email=ADMIN_EMAIL)
+    assert get_user_permission_codes(admin) == EXPECTED_CODES
+    assert User.objects.filter(email=ADMIN_EMAIL).count() == 1
+
+
+def test_seed_reactivates_a_soft_deleted_administrator():
+    seed()
+    User.objects.filter(email=ADMIN_EMAIL).update(is_active=False, is_staff=False)
+
+    seed()
+
+    admin = User.objects.get(email=ADMIN_EMAIL)
+    assert admin.is_active is True
+    assert admin.is_staff is True
+
+
+def test_seed_does_not_create_other_users():
+    seed()
+
+    assert User.objects.count() == 1
 
 
 # --- pruning -----------------------------------------------------------------
