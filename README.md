@@ -105,6 +105,43 @@ Deleting a role also deletes its permission grants and revokes it from everyone 
 users and permissions themselves survive). Deleting the **Admin** role would strip the administrator
 of every permission and lock the API — `python manage.py seed_data` restores it.
 
+## Permissions
+
+| Method | Endpoint | Permission |
+| --- | --- | --- |
+| GET | `/api/v1/permissions/` | `permission.view` |
+| GET | `/api/v1/permissions/{id}/` | `permission.view` |
+| POST | `/api/v1/permissions/` | `permission.manage` |
+| PUT | `/api/v1/permissions/{id}/` | `permission.manage` |
+| PATCH | `/api/v1/permissions/{id}/` | `permission.manage` |
+| DELETE | `/api/v1/permissions/{id}/` | `permission.manage` |
+
+As with roles, only the seeded **Admin** role carries these codes, so the catalogue is
+administrator-only in practice without that being hardcoded.
+
+**Filtering** is precise, unlike `?search=` which loosely matches code, name and description:
+
+```bash
+GET /api/v1/permissions/?code=mock.view          # exact, case-insensitive
+GET /api/v1/permissions/?code_contains=manage    # substring
+GET /api/v1/permissions/?namespace=user          # everything under user.*
+GET /api/v1/permissions/?name=mock               # substring of the display name
+GET /api/v1/permissions/?role_name=Manager       # what a role holds
+GET /api/v1/permissions/?role=<role-uuid>
+GET /api/v1/permissions/?unassigned=true         # granted by no role
+GET /api/v1/permissions/?created_after=2026-01-01T00:00:00Z
+GET /api/v1/permissions/?search=deactivate       # loose, across three columns
+GET /api/v1/permissions/?ordering=-code          # code | name | created_at | updated_at
+```
+
+`code` is **lowercased on write** and must be lowercase words joined by `.`, `_` or `-` — posting
+`Report.Export` stores `report.export`. This is not cosmetic: permission checks compare codes by
+exact string, so a stored `Report.Export` could never match a `report.export` check. Codes are unique
+case-insensitively.
+
+Deleting a permission revokes it from every role that held it; the roles survive. Any endpoint gated
+on the deleted code then denies everyone — `seed_data` restores the catalogue.
+
 ## RBAC
 
 Authorization is driven by permissions the user holds through their roles:

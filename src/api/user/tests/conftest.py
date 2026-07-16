@@ -48,9 +48,9 @@ def api():
 
 @pytest.fixture
 def admin(db):
-    """Holds both role.view and role.manage — full CRUD."""
+    """Holds every role.* and permission.* code — full CRUD on both resources."""
     user = make_user('admin@test.com')
-    grant(user, 'TestAdmin', 'role.view', 'role.manage', 'permission.view')
+    grant(user, 'TestAdmin', 'role.view', 'role.manage', 'permission.view', 'permission.manage')
     return user
 
 
@@ -61,7 +61,7 @@ def admin_client(admin):
 
 @pytest.fixture
 def viewer(db):
-    """Holds role.view only — reads but cannot write."""
+    """Holds role.view only — reads roles, cannot write them, cannot see permissions."""
     user = make_user('viewer@test.com')
     grant(user, 'TestViewer', 'role.view')
     return user
@@ -70,6 +70,19 @@ def viewer(db):
 @pytest.fixture
 def viewer_client(viewer):
     return client_for(viewer)
+
+
+@pytest.fixture
+def permission_viewer(db):
+    """Holds permission.view only — reads permissions, cannot write them."""
+    user = make_user('permviewer@test.com')
+    grant(user, 'TestPermissionViewer', 'permission.view')
+    return user
+
+
+@pytest.fixture
+def permission_viewer_client(permission_viewer):
+    return client_for(permission_viewer)
 
 
 @pytest.fixture

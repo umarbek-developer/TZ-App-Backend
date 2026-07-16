@@ -161,10 +161,27 @@ Role CRUD **DONE** — `ModelViewSet` at `src/api/user/views/role_views.py`, rou
 - [x] **E10c** — Validation: name required, non-blank, ≤100 chars, trimmed, unique
       **case-insensitively**. `id`/`permissions`/`created_at`/`updated_at` are read-only.
 - [x] **E10d** — Documented in Swagger per action, including the 401/403 responses.
-- [ ] **E11** — `GET /permissions` ✅ `permission.view`
-- [ ] **E12** — `POST /permissions` ✅ `permission.update`
-- [ ] **E13** — `PATCH /permissions/{id}` ✅ `permission.update`
-- [ ] **E14** — `DELETE /permissions/{id}` ✅ `permission.update`
+Permission CRUD **DONE** — `ModelViewSet` at `src/api/user/views/permission_views.py`, routed at
+`/api/v1/permissions/`. Gated on the seeded `permission.view`/`permission.manage` (Q13, as with
+roles).
+
+- [x] **E11** — `GET /permissions/` ✅ `permission.view` — paginated, filterable, searchable,
+      orderable.
+- [x] **E11b** — `GET /permissions/{id}/` ✅ `permission.view`.
+- [x] **E12** — `POST /permissions/` ✅ `permission.manage` → 201.
+- [x] **E13** — `PATCH /permissions/{id}/` ✅ `permission.manage` → 200.
+- [x] **E13b** — `PUT /permissions/{id}/` ✅ `permission.manage` → 200.
+- [x] **E14** — `DELETE /permissions/{id}/` ✅ `permission.manage` → 204.
+- [x] **E14b** — **Filtering** (`PermissionFilter` in `src/api/user/filters.py`): `?code=` (exact,
+      case-insensitive), `?code_contains=`, `?namespace=user` (everything under `user.*`), `?name=`,
+      `?role=<uuid>`, `?role_name=`, `?unassigned=`, `?created_after=`/`?created_before=`.
+      Distinct from `?search=`, which loosely matches code+name+description.
+- [x] **E14c** — Ordering: `?ordering=code|name|created_at|updated_at`.
+- [x] **E14d** — Validation: `code` required, ≤100 chars, **lowercased on write**, must match
+      `^[a-z0-9]+(?:[._-][a-z0-9]+)*$`, unique case-insensitively. Rationale: permission checks
+      compare codes by exact string, so a stored `Mock.View` could never match anything the API asks
+      for. `id`/`roles`/`created_at`/`updated_at` are read-only.
+- [x] **E14e** — Documented in Swagger per action, including 401/403.
 - [ ] **E15** — `POST /assign-role` ✅ `role.update` — body `{"user":1,"roles":[2,3]}`
 - [ ] **E16** — `POST /assign-permission` ✅ `permission.update` — body
       `{"role":2,"permissions":[5,6,7]}`
