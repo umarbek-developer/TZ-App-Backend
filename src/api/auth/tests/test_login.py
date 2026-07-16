@@ -44,7 +44,7 @@ def test_login_requires_both_fields(api, db):
     response = api.post(URL, {'email': 'john@gmail.com'}, format='json')
 
     assert response.status_code == 400
-    assert 'password' in response.data
+    assert 'password' in response.data['errors']
 
 
 def test_access_token_authenticates_a_request(api, user):

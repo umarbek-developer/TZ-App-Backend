@@ -355,6 +355,41 @@ are module constants. All four gated on `mock.view`, held by Admin, Manager and 
 
 ---
 
+## 9b. Error handling — DONE (commit: exception handler)
+
+Not in the assignment; requested separately. `src/api/exceptions.py`, wired via
+`REST_FRAMEWORK['EXCEPTION_HANDLER']`.
+
+- [x] **X1** — One envelope for every error: `{"success": false, "message": "...", "errors": {}}`.
+- [x] **X2** — `ValidationError` → 400, `message = "Validation failed."`, field detail under
+      `errors`. DRF's non-dict payloads (a bare list from a serializer-level error, or a plain
+      string) are normalised under `non_field_errors`, because the envelope promises an object.
+- [x] **X3** — `NotAuthenticated` / `AuthenticationFailed` → 401, DRF's own detail as `message`.
+- [x] **X4** — `PermissionDenied` → 403, keeping the permission class's specific message
+      (e.g. *"This action requires the role.view permission."*).
+- [x] **X5** — `NotFound` / `Http404` → 404.
+- [x] **X6** — Unhandled exceptions → 500 with a generic message. The type, message and traceback go
+      to the `api.exceptions` logger and **never** to the caller. Verified over HTTP by sabotaging a
+      view to raise `RuntimeError('...secret_connection_string=hunter2')`: 0 occurrences of the
+      secret, the exception type, or the traceback in the response body; all present in the log.
+- [x] **X7** — 405/429 and any other `APIException` ride the same envelope for free.
+- [x] **X8** — **The handler reshapes `response.data` and never rebuilds the Response.** DRF decides
+      401-vs-403 by whether it can build a `WWW-Authenticate` header; a handler returning a fresh
+      Response would drop that header and silently downgrade every 401 to a 403. Covered by
+      `test_the_401_www_authenticate_header_survives_reshaping`.
+- [x] **X9** — Success responses are untouched.
+- [x] **X10** — 24 dedicated tests in `src/api/tests/test_exception_handler.py`; ~33 existing
+      assertions across the suite were updated to the new shape.
+
+⚠️ **Known limitation:** the handler is DRF's, so it covers everything under `/api/v1/`. A URL that
+matches no route at all never reaches DRF and still gets Django's HTML 404. Fixing that needs a
+project-level `handler404` (and it only takes effect when `DEBUG=False`). Not done — flagging rather
+than assuming.
+
+⚠️ **Behaviour change:** a misconfigured `HasPermission` view used to raise `ImproperlyConfigured` out
+of the request; it is now caught and reported as a logged 500. It still fails closed — the caller is
+denied either way (SPEC Z7).
+
 ## 10. Process gate (per HARD CONSTRAINTS)
 
 Every step ends with **all four**, in order:

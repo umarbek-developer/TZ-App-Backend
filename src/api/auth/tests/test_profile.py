@@ -68,7 +68,7 @@ def test_patch_rejects_an_email_taken_by_someone_else(auth_client, user):
     response = auth_client.patch(URL, {'email': 'taken@gmail.com'}, format='json')
 
     assert response.status_code == 400
-    assert 'email' in response.data
+    assert 'email' in response.data['errors']
 
 
 def test_patch_cannot_reactivate_via_is_active(auth_client, user):

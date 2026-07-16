@@ -43,7 +43,7 @@ def test_register_rejects_mismatched_confirmation(api, user_data):
     response = api.post(URL, user_data, format='json')
 
     assert response.status_code == 400
-    assert 'confirm_password' in response.data
+    assert 'confirm_password' in response.data['errors']
     assert not User.objects.filter(email='john@gmail.com').exists()
 
 
@@ -51,7 +51,7 @@ def test_register_rejects_duplicate_email(api, user, user_data):
     response = api.post(URL, user_data, format='json')
 
     assert response.status_code == 400
-    assert 'email' in response.data
+    assert 'email' in response.data['errors']
     assert User.objects.filter(email__iexact='john@gmail.com').count() == 1
 
 
@@ -61,7 +61,7 @@ def test_register_rejects_duplicate_email_case_insensitively(api, user, user_dat
     response = api.post(URL, user_data, format='json')
 
     assert response.status_code == 400
-    assert 'email' in response.data
+    assert 'email' in response.data['errors']
 
 
 def test_register_rejects_weak_password(api, user_data):
@@ -70,7 +70,7 @@ def test_register_rejects_weak_password(api, user_data):
     response = api.post(URL, user_data, format='json')
 
     assert response.status_code == 400
-    assert 'password' in response.data
+    assert 'password' in response.data['errors']
 
 
 def test_register_rejects_missing_email(api, user_data):
@@ -79,7 +79,7 @@ def test_register_rejects_missing_email(api, user_data):
     response = api.post(URL, user_data, format='json')
 
     assert response.status_code == 400
-    assert 'email' in response.data
+    assert 'email' in response.data['errors']
 
 
 def test_registered_user_can_log_in(api, user_data):

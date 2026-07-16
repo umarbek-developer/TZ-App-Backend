@@ -223,6 +223,35 @@ database on each request and memoised only for that request's lifetime, so there
 to invalidate across requests. The JWT carries identity, never permissions — which is exactly why a
 token issued before the grant still picks it up.
 
+## Error responses
+
+Every error the API returns — validation, authentication, permissions, not-found, and anything
+unforeseen — comes back in one envelope:
+
+```json
+{ "success": false, "message": "...", "errors": {} }
+```
+
+`message` is a human-readable sentence. `errors` carries field-scoped detail, and is `{}` for errors
+that have no per-field breakdown — so a client can read every failure the same way.
+
+| Situation | Status | `message` | `errors` |
+| --- | --- | --- | --- |
+| No or invalid token | 401 | `Authentication credentials were not provided.` | `{}` |
+| Authenticated, permission missing | 403 | `This action requires the role.view permission.` | `{}` |
+| Validation failed | 400 | `Validation failed.` | `{"name": ["This field may not be blank."]}` |
+| Unknown id | 404 | `No Role matches the given query.` | `{}` |
+| Wrong method | 405 | `Method "POST" not allowed.` | `{}` |
+| Unhandled exception | 500 | `Internal server error.` | `{}` |
+
+Implemented in `api/exceptions.py`, wired via `REST_FRAMEWORK['EXCEPTION_HANDLER']`.
+
+**A 500 never leaks internals.** The exception message, its type and the traceback go to the logger
+under `api.exceptions`; the caller only ever sees the generic sentence above. That makes the log the
+*only* record of a crash — keep logging configured in production.
+
+Successful responses are untouched: the envelope applies to errors only.
+
 ## Mock business resources
 
 Stand-ins for real business objects, used to show RBAC gating ordinary endpoints. **No database

@@ -123,7 +123,7 @@ def test_holding_a_different_code_gets_403(user):
 def test_403_body_names_the_missing_permission(user):
     response = call(MockView, user)
 
-    assert 'mock.view' in str(response.data['detail'])
+    assert 'mock.view' in response.data['message']
 
 
 # --- multiple roles ----------------------------------------------------------
@@ -194,11 +194,21 @@ def test_inactive_user_is_denied_even_holding_the_code():
 # --- misconfiguration --------------------------------------------------------
 
 
-def test_missing_codes_raise_rather_than_allowing(user):
+def test_missing_codes_deny_rather_than_allow(user, caplog):
+    """A view that names no code is a programming error, and must never fall open.
+
+    Since the project-wide exception handler was added, the ImproperlyConfigured is
+    caught and reported as a 500 rather than propagating — so the guarantee is now
+    "the request fails and is logged", not "an exception escapes". Either way the
+    caller does not get in.
+    """
     grant(user, 'Admin', 'mock.view')
 
-    with pytest.raises(ImproperlyConfigured, match='declares no permission codes'):
-        call(MisconfiguredView, user)
+    response = call(MisconfiguredView, user)
+
+    assert response.status_code == 500
+    assert response.data['success'] is False
+    assert 'declares no permission codes' in caplog.text
 
 
 def test_factory_rejects_no_codes():

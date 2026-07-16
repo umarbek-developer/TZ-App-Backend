@@ -165,7 +165,7 @@ def test_create_rejects_a_duplicate_code(admin_client, permission):
     response = admin_client.post(URL, {'code': 'mock.view', 'name': 'Dup'}, format='json')
 
     assert response.status_code == 400
-    assert 'code' in response.data
+    assert 'code' in response.data['errors']
     assert Permission.objects.filter(code='mock.view').count() == 1
 
 
@@ -173,7 +173,7 @@ def test_create_rejects_a_duplicate_code_case_insensitively(admin_client, permis
     response = admin_client.post(URL, {'code': 'MOCK.VIEW', 'name': 'Dup'}, format='json')
 
     assert response.status_code == 400
-    assert 'code' in response.data
+    assert 'code' in response.data['errors']
 
 
 def test_create_lowercases_the_code(admin_client):
@@ -208,7 +208,7 @@ def test_create_rejects_a_malformed_code(admin_client, bad_code):
     response = admin_client.post(URL, {'code': bad_code, 'name': 'X'}, format='json')
 
     assert response.status_code == 400, f'{bad_code!r} should be rejected'
-    assert 'code' in response.data
+    assert 'code' in response.data['errors']
 
 
 @pytest.mark.parametrize('good_code', ['mock.view', 'a.b.c', 'user_role.view', 'report-x.export'])
@@ -222,14 +222,14 @@ def test_create_rejects_a_missing_code(admin_client):
     response = admin_client.post(URL, {'name': 'X'}, format='json')
 
     assert response.status_code == 400
-    assert 'code' in response.data
+    assert 'code' in response.data['errors']
 
 
 def test_create_rejects_a_missing_name(admin_client):
     response = admin_client.post(URL, {'code': 'mock.edit'}, format='json')
 
     assert response.status_code == 400
-    assert 'name' in response.data
+    assert 'name' in response.data['errors']
 
 
 def test_create_rejects_an_overlong_code(admin_client):
@@ -254,7 +254,7 @@ def test_update_rejects_a_code_taken_by_another_permission(admin_client, permiss
     response = admin_client.patch(detail(permission), {'code': 'user.view'}, format='json')
 
     assert response.status_code == 400
-    assert 'code' in response.data
+    assert 'code' in response.data['errors']
 
 
 def test_read_only_fields_cannot_be_written(admin_client, permission):

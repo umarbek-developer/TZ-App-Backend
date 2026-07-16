@@ -116,6 +116,8 @@ REST_FRAMEWORK = {
         'login': '5/day',
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    # Every error response goes out in one envelope. See api/exceptions.py.
+    'EXCEPTION_HANDLER': 'api.exceptions.custom_exception_handler',
 }
 
 SPECTACULAR_SETTINGS = {

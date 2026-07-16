@@ -167,7 +167,7 @@ def test_create_rejects_a_duplicate_name(admin_client, role):
     response = admin_client.post(URL, {'name': 'Manager'}, format='json')
 
     assert response.status_code == 400
-    assert 'name' in response.data
+    assert 'name' in response.data['errors']
     assert Role.objects.filter(name='Manager').count() == 1
 
 
@@ -175,14 +175,14 @@ def test_create_rejects_a_duplicate_name_case_insensitively(admin_client, role):
     response = admin_client.post(URL, {'name': 'MANAGER'}, format='json')
 
     assert response.status_code == 400
-    assert 'name' in response.data
+    assert 'name' in response.data['errors']
 
 
 def test_create_rejects_a_blank_name(admin_client):
     response = admin_client.post(URL, {'name': ''}, format='json')
 
     assert response.status_code == 400
-    assert 'name' in response.data
+    assert 'name' in response.data['errors']
 
 
 def test_create_rejects_a_whitespace_only_name(admin_client):
@@ -195,7 +195,7 @@ def test_create_rejects_a_missing_name(admin_client):
     response = admin_client.post(URL, {'description': 'no name'}, format='json')
 
     assert response.status_code == 400
-    assert 'name' in response.data
+    assert 'name' in response.data['errors']
 
 
 def test_create_rejects_an_overlong_name(admin_client):
@@ -227,7 +227,7 @@ def test_update_rejects_a_name_taken_by_another_role(admin_client, role):
     response = admin_client.patch(detail(role), {'name': 'Auditor'}, format='json')
 
     assert response.status_code == 400
-    assert 'name' in response.data
+    assert 'name' in response.data['errors']
 
 
 def test_read_only_fields_cannot_be_written(admin_client, role):

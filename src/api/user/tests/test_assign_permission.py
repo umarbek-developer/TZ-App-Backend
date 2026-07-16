@@ -146,7 +146,7 @@ def test_unknown_role_is_400(admin_client, permissions):
     )
 
     assert response.status_code == 400
-    assert 'role' in response.data
+    assert 'role' in response.data['errors']
 
 
 def test_unknown_permission_is_400(admin_client, role):
@@ -157,7 +157,7 @@ def test_unknown_permission_is_400(admin_client, role):
     )
 
     assert response.status_code == 400
-    assert 'permissions' in response.data
+    assert 'permissions' in response.data['errors']
 
 
 def test_one_unknown_permission_rejects_the_whole_request(admin_client, role, permissions):
@@ -186,7 +186,7 @@ def test_duplicate_permission_ids_are_400(admin_client, role, permissions):
     )
 
     assert response.status_code == 400
-    assert 'permissions' in response.data
+    assert 'permissions' in response.data['errors']
 
 
 def test_missing_role_is_400(admin_client, permissions):
@@ -195,21 +195,21 @@ def test_missing_role_is_400(admin_client, permissions):
     )
 
     assert response.status_code == 400
-    assert 'role' in response.data
+    assert 'role' in response.data['errors']
 
 
 def test_missing_permissions_is_400(admin_client, role):
     response = admin_client.post(URL, {'role': str(role.pk)}, format='json')
 
     assert response.status_code == 400
-    assert 'permissions' in response.data
+    assert 'permissions' in response.data['errors']
 
 
 def test_empty_permission_list_is_400_on_assign(admin_client, role):
     response = admin_client.post(URL, {'role': str(role.pk), 'permissions': []}, format='json')
 
     assert response.status_code == 400
-    assert 'permissions' in response.data
+    assert 'permissions' in response.data['errors']
 
 
 def test_malformed_uuid_is_400(admin_client, permissions):
