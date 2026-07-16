@@ -1,0 +1,22 @@
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+# The Django project root is src/, not the repo root, so src/ must be on the
+# import path for "config.settings" and "api.*"/"apps.*" to resolve.
+pythonpath = ["src"]
+testpaths = ["src"]
+python_files = ["test_*.py", "tests.py"]
+addopts = "-q --strict-markers"
+
+[tool.ruff]
+line-length = 100
+src = ["src"]
+extend-exclude = ["venv", "*/migrations/*"]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# The settings package is built on `from .base import *` by design; star-import
+# warnings there are noise, not signal.
+"src/config/settings/*.py" = ["F403", "F405"]

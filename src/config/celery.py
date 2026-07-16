@@ -1,5 +1,6 @@
 # config/celery.py (yoki src/celery.py)
 import os
+
 from celery import Celery
 
 # Django sozlamalari faylini Celery-ga tanishtiramiz

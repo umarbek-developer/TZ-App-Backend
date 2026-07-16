@@ -1,11 +1,11 @@
-import uuid
 import random
-from django.db import models
-from django.contrib.auth.models import AbstractUser, BaseUserManager
-from rest_framework_simplejwt.tokens import RefreshToken
+import uuid
 from datetime import timedelta
-from django.utils import timezone
 
+from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.db import models
+from django.utils import timezone
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 class CustomUserManager(BaseUserManager):
@@ -39,6 +39,7 @@ class CustomUserManager(BaseUserManager):
 class User(AbstractUser):
     id = models.UUIDField(default=uuid.uuid4, unique=True, primary_key=True)
     email = models.EmailField(unique=True, max_length=50)
+    middle_name = models.CharField(max_length=150, null=True, blank=True)
     telegram_id = models.CharField(max_length=50, null=True, blank=True)
     phone_number = models.CharField(max_length=13, null=True, blank=True)
     language = models.CharField(max_length=2, default='uz')
@@ -68,9 +69,6 @@ class User(AbstractUser):
             self.set_password(self.password)
 
     def check_empty_password(self):
-        if not self.username:
-            username = f'username-{uuid.uuid4().__str__().split("-")[-1]}'
-            
         if not self.password:
             password = f'password-{uuid.uuid4().__str__().split("-")[-1]}'
             self.password = password
@@ -79,7 +77,7 @@ class User(AbstractUser):
     def save(self, *args, **kwargs):
         self.check_empty_password()
         self.check_hash_password()
-        super(User, self).save(*args, **kwargs)
+        super().save(*args, **kwargs)
 
 
 class UserOTPVerifications(models.Model):
@@ -95,7 +93,7 @@ class UserOTPVerifications(models.Model):
 
     def __str__(self):
         return f"{self.user} | {self.code}"
-        
+
     def generate_code(self):
         otp = random.randint(100000, 999999)
         now = timezone.now()
@@ -104,12 +102,12 @@ class UserOTPVerifications(models.Model):
         self.code = otp
         self.save()
         return otp
-    
+
     def is_code_expired(self):
         if self.expired_at >= timezone.now():
             return self.expired_at.timestamp()
         return False
-    
+
 
 class UserOTPIDVerifications(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -121,12 +119,12 @@ class UserOTPIDVerifications(models.Model):
 
     def __str__(self):
         return f"{self.user} | {self.code}"
-    
+
     def is_code_expired(self):
         if self.expired_at >= timezone.now():
             return self.expired_at.timestamp()
         return False
-    
+
 
 class ChangePasswordLogs(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -140,17 +138,17 @@ class ChangePasswordLogs(models.Model):
 
     def __str__(self):
         return f"{self.user} | {self.attapts}"
-    
+
     def is_expired(self):
         if self.expired_at >= timezone.now():
             return self.expired_at
         return False
-    
+
     def is_blocked(self):
         if self.error_expired_at >= timezone.now():
             return self.error_expired_at
         return False
-    
+
 
 class ChangeEmailLogs(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -166,7 +164,7 @@ class ChangeEmailLogs(models.Model):
 
     def __str__(self):
         return f"{self.user} | {self.attapts}"
-    
+
     def is_expired(self):
         if self.expired_at >= timezone.now():
             return self.expired_at

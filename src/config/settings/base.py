@@ -2,6 +2,7 @@
 import os
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
 
 env = environ.Env()
 
@@ -36,6 +37,7 @@ INSTALLED_APPS = [
     # third-party apps
     'corsheaders',
     'rest_framework',
+    'rest_framework_simplejwt.token_blacklist',
     'django_filters',
     'drf_spectacular',
 
@@ -94,16 +96,17 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 REST_FRAMEWORK = {
+    # JWT is the only authentication mechanism. Session/Basic are deliberately
+    # absent: this is a stateless token API.
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        # 'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
     ],
     'DEFAULT_PAGINATION_CLASS': 'api.pagination.CustomPagination',
     'PAGE_SIZE': 10,
+    # Secure by default: endpoints require a valid token unless they opt out with
+    # an explicit AllowAny (register and login do).
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
-        # 'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.ScopedRateThrottle',
@@ -112,7 +115,14 @@ REST_FRAMEWORK = {
         'login': '5/day',
     },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    # 'UNAUTHENTICATED_USER': 'users.models.AnonymousUser',
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'TZ-App Backend API',
+    'DESCRIPTION': 'JWT authentication API. RBAC is added in a later step.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SCHEMA_PATH_PREFIX': '/api/v1',
 }
 
 
@@ -142,9 +152,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 DB_TYPE = env("DB_TYPE")
-DATABASES = {}
-if DB_TYPE == "psql":
-    DATABASES["default"] = {
+
+# PostgreSQL only. There is deliberately no sqlite fallback: a wrong DB_TYPE must
+# fail loudly at startup rather than silently running the project on a different
+# database than the one it is developed and tested against.
+if DB_TYPE != "psql":
+    raise ImproperlyConfigured(
+        f'DB_TYPE must be "psql" (this project is PostgreSQL-only), got "{DB_TYPE}". '
+        f"Update {os.path.join(BASE_DIR, '.env')}."
+    )
+
+DATABASES = {
+    "default": {
         "ENGINE": "django.db.backends.postgresql",
         "CONN_MAX_AGE": 60,
         "NAME": env("DB_NAME"),
@@ -153,11 +172,7 @@ if DB_TYPE == "psql":
         "HOST": env("DB_HOST"),
         "PORT": env("DB_PORT"),
     }
-else:
-    DATABASES["default"] = {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR + "/db.sqlite3",
-    }
+}
 
 
 

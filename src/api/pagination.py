@@ -26,10 +26,10 @@ class CustomPagination(PageNumberPagination):
                 'results': schema,
             },
         }
-    
+
 
 class ObjectPaginationClass(PageNumberPagination):
-    page_size = 10 
+    page_size = 10
 
     def get_paginated_response(self, data):
         return Response({
