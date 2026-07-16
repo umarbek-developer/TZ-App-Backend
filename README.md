@@ -223,6 +223,37 @@ database on each request and memoised only for that request's lifetime, so there
 to invalidate across requests. The JWT carries identity, never permissions — which is exactly why a
 token issued before the grant still picks it up.
 
+## Mock business resources
+
+Stand-ins for real business objects, used to show RBAC gating ordinary endpoints. **No database
+tables** — the payloads are static constants, and the responses are bare JSON arrays.
+
+| Method | Endpoint | Permission |
+| --- | --- | --- |
+| GET | `/api/v1/mock/projects/` | `mock.view` |
+| GET | `/api/v1/mock/orders/` | `mock.view` |
+| GET | `/api/v1/mock/employees/` | `mock.view` |
+| GET | `/api/v1/mock/documents/` | `mock.view` |
+
+```bash
+GET /api/v1/mock/projects/
+[{"id": 1, "name": "CRM"}, {"id": 2, "name": "ERP"}]
+
+GET /api/v1/mock/orders/
+[{"id": 100, "price": 500}]
+```
+
+These are the endpoints a **non-administrator** can actually reach, so they are the clearest
+demonstration of the RBAC rules. With the seeded data:
+
+| Caller | Result |
+| --- | --- |
+| Anonymous | **401** |
+| Guest (role with no permissions) | **403** |
+| Employee (`mock.view`) | **200** |
+| Manager (`mock.view`, `user.view`) | **200** |
+| Admin (all eight) | **200** |
+
 
 
 ## RBAC

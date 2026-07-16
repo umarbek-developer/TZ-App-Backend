@@ -229,10 +229,32 @@ Assign-permission **DONE** — `APIView` at `src/api/user/views/assign_permissio
       instance and would mask exactly this.
 - [x] **E16g** — Documented in Swagger per verb, including the immediacy note and 400/401/403.
 
-### Mock (no database — static JSON)
+### Mock (no database — static JSON) — DONE
 
-- [ ] **E17** — `GET /mock/projects` ✅ `mock.view` → `[{"id":1,"name":"CRM"},{"id":2,"name":"ERP"}]`
-- [ ] **E18** — `GET /mock/orders` ✅ `mock.view` → `[{"id":100,"price":500}]`
+`APIView`s at `src/api/user/views/mock_views.py`. No models, no tables, no migrations — the payloads
+are module constants. All four gated on `mock.view`, held by Admin, Manager and Employee.
+
+- [x] **E17** — `GET /api/v1/mock/projects/` ✅ `mock.view` →
+      `[{"id":1,"name":"CRM"},{"id":2,"name":"ERP"}]` (verbatim from the assignment).
+- [x] **E18** — `GET /api/v1/mock/orders/` ✅ `mock.view` → `[{"id":100,"price":500}]` (verbatim).
+- [x] **E18b** — `GET /api/v1/mock/employees/` ✅ `mock.view` → 3 items
+      `{id, first_name, last_name, position}`. Not in the assignment; shape invented to match.
+- [x] **E18c** — `GET /api/v1/mock/documents/` ✅ `mock.view` → 3 items `{id, title, type}`. Not in
+      the assignment; shape invented to match.
+- [x] **E18d** — Anonymous → 401, authenticated without `mock.view` → 403, with it → 200. Verified
+      over HTTP across every seeded role: Admin/Manager/Employee 200, Guest 403, anonymous 401.
+- [x] **E18e** — Responses are **bare JSON arrays**, not the project's paginated envelope — the
+      assignment specifies the array shape, and an `APIView` does not apply
+      `DEFAULT_PAGINATION_CLASS`.
+- [x] **E18f** — Only GET is offered; POST → 405.
+- [x] **E18g** — Documented in Swagger with a response serializer per resource (documentation only —
+      the views return the constants). A test asserts each payload's keys match its serializer, so
+      the two cannot drift.
+- [x] **E18h** — Each request costs exactly **one** query (resolving the caller's permissions) and
+      **zero** data queries — asserted, which is what "no database tables" means in practice.
+- [x] **E18i** — Payloads are `deepcopy`-ed per response. The views hand out module-level constants
+      that live for the life of the process; anything mutating `response.data` would otherwise
+      corrupt them for every later request. A test caught this.
 
 ---
 
