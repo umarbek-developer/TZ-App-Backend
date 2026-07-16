@@ -1,5 +1,8 @@
 # TZ-App-Backend
 
+Email: admin@gmail.com
+Password: admin123
+
 A Django REST API with JWT authentication and role-based access control (RBAC).
 
 ## Running locally

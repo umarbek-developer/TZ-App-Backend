@@ -94,19 +94,34 @@ pytest green, ruff clean, git commit.
 
 ---
 
-## 5. Authorization
+## 5. Authorization — DONE (commit: rbac permission layer)
 
-- [ ] **Z1** — Request with **no/invalid/expired/revoked token → 401**.
-- [ ] **Z2** — Request **authenticated but lacking the permission → 403**. The 401-vs-403 split must
-      be exact; this is the single most-tested behaviour in the assignment.
-- [ ] **Z3** — Permission resolution: `User → UserRole → Role → RolePermission → Permission.code`.
-      A user's effective permission set is the **union** across all their roles.
-- [ ] **Z4** — Permission classes are custom subclasses of DRF `BasePermission` (explicitly allowed).
-      No `IsAuthenticated`, `IsAdminUser`, or `DjangoModelPermissions` (C9).
-- [ ] **Z5** — A reusable permission check keyed by code string (the assignment's "Permission
-      Decorator"), so a view declares e.g. `mock.view` once.
-- [ ] **Z6** — Guest (no permissions) gets 403 on every permission-gated endpoint but still passes
-      the authenticated-only endpoints (logout, profile).
+Helpers in `src/apps/rbac/services.py`; permission classes in `src/apps/rbac/permissions.py`.
+
+- [x] **Z1** — No/invalid token → **401**. `test_anonymous_gets_401`.
+- [x] **Z2** — Authenticated but lacking the code → **403**.
+      `test_authenticated_without_permission_gets_403`. The split is DRF's own: returning `False`
+      raises `NotAuthenticated` (401) when no authenticator succeeded, `PermissionDenied` (403) when
+      one did. ⚠️ Only holds while the view keeps an authenticator that emits a
+      `WWW-Authenticate` header — `authentication_classes = []` collapses both to 403.
+- [x] **Z3** — `User → UserRole → Role → RolePermission → Permission.code`, unioned across roles.
+      `test_permissions_union_across_multiple_roles`, `test_overlapping_roles_do_not_duplicate_codes`.
+- [x] **Z4** — `HasPermission` subclasses DRF `BasePermission` with fully custom logic.
+- [x] **Z5** — Reusable two ways: `permission_classes = [require_permissions('mock.view')]` (factory)
+      or `permission_classes = [HasPermission]` + `required_permissions = 'role.view'` on the view.
+      `require_all=False` gives any-of semantics.
+- [x] **Z6** — Guest (no permissions) → 403 on gated endpoints. `test_role_without_the_code_gets_403`.
+- [x] **Z7** — **Fails closed.** `HasPermission` with no declared code raises `ImproperlyConfigured`
+      rather than allowing every authenticated user.
+- [x] **Z8** — **Query cost:** one query per request regardless of role count, memoised on the user
+      instance for the request's lifetime; zero queries for anonymous.
+      `test_resolution_is_a_single_query_regardless_of_role_count`, `test_repeat_lookups_hit_the_cache`.
+- [x] **Z9** — Inactive users hold nothing even if their roles grant codes
+      (`test_inactive_user_is_denied_even_holding_the_code`).
+- [ ] **Z10** — ⚠️ **`is_superuser` does NOT bypass permission checks** (SPEC Q9, still unanswered).
+      Permissions come only from the database, per *"check permissions using the database"*.
+      **Consequence:** the existing `admin@gmail.com` superuser holds **no roles**, so it will get
+      403 on every gated endpoint once the APIs exist. Needs either a bypass or an Admin-role grant.
 
 ---
 
