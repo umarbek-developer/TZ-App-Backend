@@ -148,20 +148,28 @@ All at `/api/v1/…`, implemented in `src/api/auth/`.
 
 ---
 
-## 7. Seed data
+## 7. Seed data — DONE (commit: seed step)
 
-- [ ] **S1** — A management command creates the seed set (template slot:
-      `src/apps/utils/management/commands/`).
-- [ ] **S2** — Administrator: `admin@mail.com` / `password123`.
-- [ ] **S3** — Roles: `Admin`, `Manager`, `Employee`, `Guest`.
-- [ ] **S4** — Permissions (the Seed Data list — 8 codes): `user.view`, `user.update`, `user.delete`,
-      `mock.view`, `role.view`, `role.update`, `permission.view`, `permission.update`.
-      ⚠️ The Database-Design examples also list `user.create` (9 codes) — see §9 Q6.
-- [ ] **S5** — Admin → all permissions.
-- [ ] **S6** — Manager → `mock.view`, `user.view`.
-- [ ] **S7** — Employee → `mock.view`.
-- [ ] **S8** — Guest → none.
-- [ ] **S9** — The command is idempotent (re-running does not duplicate or crash).
+- [x] **S1** — `python manage.py seed_data`, at
+      `src/apps/rbac/management/commands/seed_data.py` (placed with the models it seeds rather than
+      in the generic `apps/utils/` slot).
+- [ ] **S2** — ⚠️ **NOT DONE — administrator user `admin@mail.com` / `password123` was not
+      created.** The owner's seed instruction listed only roles, permissions and grants; the
+      assignment's Seed Data section also calls for this account. Deliberately not invented — see
+      §9 Q12.
+- [x] **S3** — Roles: `Admin`, `Manager`, `Employee`, `Guest`.
+- [x] **S4** — Permissions, **8 codes as re-specified by the owner**: `user.view`, `user.update`,
+      `user.delete`, `role.view`, `role.manage`, `permission.view`, `permission.manage`, `mock.view`.
+      ⚠️ This **changes two codes** vs the assignment: `role.update` → `role.manage` and
+      `permission.update` → `permission.manage`. The assignment's API Summary still names the old
+      codes — see §9 Q13. Resolves Q6: `user.create` is **not** seeded.
+- [x] **S5** — Admin → all 8.
+- [x] **S6** — Manager → `mock.view`, `user.view`.
+- [x] **S7** — Employee → `mock.view`.
+- [x] **S8** — Guest → none.
+- [x] **S9** — Idempotent. Verified by re-running against the real database (0 rows created on the
+      second pass) and by `test_running_three_times_is_stable`. `--prune` additionally reconciles
+      away undeclared grants; the default is additive so hand-made grants survive.
 
 ---
 
@@ -223,10 +231,16 @@ All at `/api/v1/…`, implemented in `src/api/auth/`.
 - **Q9** — Does `is_superuser = True` bypass permission checks, or must Admin's power come only from
   seeded role→permission rows?
 - **Q10** — Seed admin password `password123` fails the `AUTH_PASSWORD_VALIDATORS` now enforced at
-  registration (too common / no symbol). The seed command bypasses the serializer so it will work,
-  but the two are inconsistent — intended?
-- **Q11** — Are `Role.name` and `Permission.code` unique? Implied but never stated; affects the
-  idempotent seed (S9).
+  registration (too common / no symbol). Moot unless Q12 is answered yes.
+- **Q11** — ✅ **Answered by implementation.** `Role.name` and `Permission.code` are unique, and both
+  join tables carry `UniqueConstraint`s.
+- **Q12** — **The seed does not create the `admin@mail.com` / `password123` administrator.** The
+  owner's instruction listed only roles/permissions/grants; the assignment asks for the account.
+  Should `seed_data` create it (and if so, superuser or Admin-role-holder)?
+- **Q13** — **Permission codes diverge from the assignment.** The seed now uses `role.manage` and
+  `permission.manage`, but the assignment's API Summary gates `POST/PATCH/DELETE /roles` on
+  `role.update` and `POST/PATCH/DELETE /permissions` on `permission.update`. The API step needs to
+  know which naming wins. Assumption: the newer `*.manage` codes.
 
 ---
 
