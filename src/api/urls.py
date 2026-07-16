@@ -12,6 +12,9 @@ urlpatterns = [
     path('redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
 
     path('admin/', include('api.admin.urls')),
-    path('user/', include('api.user.urls')),
+
+    # Both are mounted at the root so the URLs match the spec (/api/v1/auth/...,
+    # /api/v1/roles/...). Their patterns do not overlap.
+    path('', include('api.user.urls')),
     path('', include('api.auth.urls')),
 ]

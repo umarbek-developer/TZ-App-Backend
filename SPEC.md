@@ -144,10 +144,23 @@ All at `/api/v1/…`, implemented in `src/api/auth/`.
 
 ### RBAC admin
 
-- [ ] **E7** — `GET /roles` ✅ `role.view`
-- [ ] **E8** — `POST /roles` ✅ `role.update`
-- [ ] **E9** — `PATCH /roles/{id}` ✅ `role.update`
-- [ ] **E10** — `DELETE /roles/{id}` ✅ `role.update`
+Role CRUD **DONE** — `ModelViewSet` at `src/api/user/views/role_views.py`, routed at
+`/api/v1/roles/` (owner's choice; `api.user.urls` is now mounted at the root).
+⚠️ Gated on the **seeded** `role.view`/`role.manage` codes, not the assignment's `role.update`
+(Q13) — `role.update` does not exist in the database, so gating on it would deny everyone.
+"Administrator only" is an emergent property: only the Admin role holds these codes.
+
+- [x] **E7** — `GET /roles/` ✅ `role.view` — paginated, searchable, orderable.
+- [x] **E7b** — `GET /roles/{id}/` ✅ `role.view`.
+- [x] **E8** — `POST /roles/` ✅ `role.manage` → 201.
+- [x] **E9** — `PATCH /roles/{id}/` ✅ `role.manage` → 200.
+- [x] **E9b** — `PUT /roles/{id}/` ✅ `role.manage` → 200.
+- [x] **E10** — `DELETE /roles/{id}/` ✅ `role.manage` → 204.
+- [x] **E10b** — Pagination (`?page`, `?page_size`), search over name+description (`?search`),
+      ordering (`?ordering=name|created_at|updated_at`, `-` to reverse).
+- [x] **E10c** — Validation: name required, non-blank, ≤100 chars, trimmed, unique
+      **case-insensitively**. `id`/`permissions`/`created_at`/`updated_at` are read-only.
+- [x] **E10d** — Documented in Swagger per action, including the 401/403 responses.
 - [ ] **E11** — `GET /permissions` ✅ `permission.view`
 - [ ] **E12** — `POST /permissions` ✅ `permission.update`
 - [ ] **E13** — `PATCH /permissions/{id}` ✅ `permission.update`

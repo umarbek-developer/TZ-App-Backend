@@ -76,6 +76,35 @@ outstanding refresh token for the account is blacklisted, and the current access
 immediately because SimpleJWT rejects tokens belonging to inactive users. The account cannot log in
 again.
 
+## Roles
+
+| Method | Endpoint | Permission |
+| --- | --- | --- |
+| GET | `/api/v1/roles/` | `role.view` |
+| GET | `/api/v1/roles/{id}/` | `role.view` |
+| POST | `/api/v1/roles/` | `role.manage` |
+| PUT | `/api/v1/roles/{id}/` | `role.manage` |
+| PATCH | `/api/v1/roles/{id}/` | `role.manage` |
+| DELETE | `/api/v1/roles/{id}/` | `role.manage` |
+
+Only the seeded **Admin** role carries `role.view`/`role.manage`, so these endpoints are
+administrator-only in practice — but that follows from the RBAC tables rather than a hardcoded check,
+so granting `role.view` to another role is all it takes to open up reads.
+
+```bash
+GET /api/v1/roles/?page=2&page_size=5          # pagination
+GET /api/v1/roles/?search=manager              # searches name and description
+GET /api/v1/roles/?ordering=-created_at        # name | created_at | updated_at, - to reverse
+```
+
+`name` is required, trimmed, at most 100 characters, and unique **case-insensitively** — `admin` is
+rejected while `Admin` exists. A role's `permissions` are shown read-only; they are changed through
+the assign-permission endpoint.
+
+Deleting a role also deletes its permission grants and revokes it from everyone who held it (the
+users and permissions themselves survive). Deleting the **Admin** role would strip the administrator
+of every permission and lock the API — `python manage.py seed_data` restores it.
+
 ## RBAC
 
 Authorization is driven by permissions the user holds through their roles:
