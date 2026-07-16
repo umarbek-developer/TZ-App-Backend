@@ -205,8 +205,29 @@ Assign-role **DONE** — `APIView` at `src/api/user/views/assign_role_views.py`,
       `+ removed/unchanged` (PUT), `{removed, not_assigned}` (DELETE).
 - [x] **E15g** — `clear_permission_cache()` is called after every mutation.
 - [x] **E15h** — Documented in Swagger per verb, including 400/401/403.
-- [ ] **E16** — `POST /assign-permission` ✅ `permission.update` — body
-      `{"role":2,"permissions":[5,6,7]}`
+Assign-permission **DONE** — `APIView` at `src/api/user/views/assign_permission_views.py`, routed at
+`/api/v1/assign-permission/`. Same one-endpoint/three-verbs shape as assign-role. Gated on
+`permission.manage`.
+
+- [x] **E16** — `POST /api/v1/assign-permission/` ✅ `permission.manage` → 200. **Adds** permissions,
+      keeping existing ones. Body `{"role": "<uuid>", "permissions": ["<uuid>", ...]}` (UUIDs, not
+      the assignment example's integers — see E15).
+- [x] **E16b** — `PUT /api/v1/assign-permission/` ✅ → 200. **Replaces**; empty list strips all.
+- [x] **E16c** — `DELETE /api/v1/assign-permission/` ✅ → 200 with a body. **Removes** the given
+      permissions.
+- [x] **E16d** — Validation: role and every permission must exist; no duplicate ids in the payload;
+      list non-empty except on PUT. One unknown id rejects the whole request (`transaction.atomic`).
+- [x] **E16e** — Duplicates: an already-carried permission is a no-op reported under
+      `already_assigned`; `bulk_create(ignore_conflicts=True)` covers the concurrent-request race.
+- [x] **E16f** — **Changes take effect immediately.** Every holder of the role sees the new
+      permissions on their very next request — no re-login, no token refresh. This falls out of the
+      design: codes are resolved from the database per request and memoised only for that request's
+      lifetime. The caller's own cache is dropped explicitly (`clear_permission_cache(request.user)`)
+      because they are the one live user object in the process and may have just edited their own
+      role. Verified over HTTP with a token issued *before* the grant: 403 → grant → 200 → revoke →
+      403. Test coverage uses real JWTs, not `force_authenticate`, since the latter pins one user
+      instance and would mask exactly this.
+- [x] **E16g** — Documented in Swagger per verb, including the immediacy note and 400/401/403.
 
 ### Mock (no database — static JSON)
 

@@ -179,6 +179,50 @@ reported in the response rather than an error — so retries are safe.
 unknown id rejects the whole request: the writes are transactional, so a half-valid payload lands
 nothing.
 
+## Assigning permissions to roles
+
+Same shape, one level up the chain. All require `permission.manage`.
+
+| Method | Endpoint | Does |
+| --- | --- | --- |
+| POST | `/api/v1/assign-permission/` | **Adds** permissions, keeping the ones already carried |
+| PUT | `/api/v1/assign-permission/` | **Replaces** — the role ends up carrying exactly the listed permissions |
+| DELETE | `/api/v1/assign-permission/` | **Removes** the listed permissions, leaving the rest |
+
+```json
+{ "role": "<role-uuid>", "permissions": ["<permission-uuid>", "<permission-uuid>"] }
+```
+
+```json
+{
+  "role": { "id": "…", "name": "Guest" },
+  "permissions": ["mock.view", "role.view"],
+  "added": ["role.view"],
+  "already_assigned": ["mock.view"]
+}
+```
+
+PUT reports `added` / `removed` / `unchanged`; DELETE reports `removed` / `not_assigned`. Idempotent
+and validated exactly as assign-role above.
+
+### Changes take effect immediately
+
+Every user holding the role sees the change on their **very next request** — no re-login, no token
+refresh, no cache to wait out:
+
+```
+GET /api/v1/roles/   with a Guest's token        -> 403
+POST /api/v1/assign-permission/  grant role.view to Guest
+GET /api/v1/roles/   same token, unchanged       -> 200
+DELETE /api/v1/assign-permission/  revoke it
+GET /api/v1/roles/   same token, unchanged       -> 403
+```
+
+This is a property of the design rather than an extra mechanism: permission codes are read from the
+database on each request and memoised only for that request's lifetime, so there is no stale state
+to invalidate across requests. The JWT carries identity, never permissions — which is exactly why a
+token issued before the grant still picks it up.
+
 
 
 ## RBAC

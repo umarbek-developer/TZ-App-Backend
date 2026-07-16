@@ -1,5 +1,6 @@
 import pytest
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.rbac.models import Permission, Role, RolePermission, UserRole
 from apps.rbac.services import clear_permission_cache
@@ -33,6 +34,20 @@ def grant(user, role_name, *codes):
 def client_for(user):
     api = APIClient()
     api.force_authenticate(user=user)
+    return api
+
+
+def jwt_client_for(user):
+    """A client authenticating with a real JWT, as a real caller would.
+
+    Unlike force_authenticate — which pins the one user object it was handed for
+    every request — this makes each request re-load the user from the database,
+    exactly as production does. That matters for anything asserting that a
+    permission change is visible immediately: with force_authenticate, the codes
+    memoised on the pinned instance would mask the change.
+    """
+    api = APIClient()
+    api.credentials(HTTP_AUTHORIZATION=f'Bearer {RefreshToken.for_user(user).access_token}')
     return api
 
 
