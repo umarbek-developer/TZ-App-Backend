@@ -43,7 +43,8 @@ INSTALLED_APPS = [
 
     # own apps
     'apps.utils',
-    'apps.users'
+    'apps.users',
+    'apps.rbac',
 ]
 
 MIDDLEWARE = [
