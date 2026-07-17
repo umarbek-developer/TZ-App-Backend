@@ -1,745 +1,35 @@
 {
   "info": {
-    "_postman_id": "bd93d5ec-fab9-4e49-bf5a-1598628032ce",
-    "name": "app",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "44540346"
+    "_postman_id": "7f3c1a92-5d84-4c1b-9f6e-2a8b4d0e1c37",
+    "name": "TZ-App — RBAC API",
+    "description": "JWT authentication + role-based access control.\n\n## Setup\n1. `cd src && python manage.py migrate && python manage.py seed_data`\n2. `python manage.py runserver`\n3. Import `postman-variables.json` as an environment and select it.\n4. Run **1. Auth > Login (admin)** — it stores the token pair, and every admin-only request below picks it up automatically.\n\nThe folders are ordered to be run top-to-bottom in the Collection Runner: each one captures the ids the next needs (role_id, permission_id, demo_user_id...), so nothing has to be pasted by hand.\n\n## Response format\nEvery response uses one envelope.\n\nSuccess: `{\"success\": true, \"message\": \"...\", \"data\": {}}`\n\nFailure: `{\"success\": false, \"message\": \"...\", \"errors\": {}}`\n\nTokens therefore live at `data.access` / `data.refresh`, and list pagination at `data.count` / `data.pages` / `data.results`.\n\nInteractive docs: http://127.0.0.1:8000/api/v1/docs/",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
   },
   "item": [
     {
-      "name": "auth",
+      "name": "1. Auth",
+      "description": "Регистрация, login, профиль, logout, мягкое удаление.",
       "item": [
         {
-          "name": "forget-password",
-          "item": [
-            {
-              "name": "send-otp",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"email\": \"mekop60271@hilostar.com\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{url}}/auth/forget-password/otp/",
-                  "host": [
-                    "{{url}}"
-                  ],
-                  "path": [
-                    "user",
-                    "auth",
-                    "forget-password",
-                    "otp",
-                    ""
-                  ]
-                }
-              },
-              "response": [
-                {
-                  "name": "success sent otp",
-                  "originalRequest": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n    \"email\": \"mekop60271@hilostar.com\"\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{url}}/auth/forget-password/otp/",
-                      "host": [
-                        "{{url}}"
-                      ],
-                      "path": [
-                        "user",
-                        "auth",
-                        "forget-password",
-                        "otp",
-                        ""
-                      ]
-                    }
-                  },
-                  "status": "OK",
-                  "code": 200,
-                  "_postman_previewlanguage": null,
-                  "header": [
-                    {
-                      "key": "Date",
-                      "value": "Thu, 14 May 2026 14:13:35 GMT"
-                    },
-                    {
-                      "key": "Server",
-                      "value": "WSGIServer/0.2 CPython/3.9.6"
-                    },
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    },
-                    {
-                      "key": "Vary",
-                      "value": "Accept, origin"
-                    },
-                    {
-                      "key": "Allow",
-                      "value": "POST, OPTIONS"
-                    },
-                    {
-                      "key": "X-Frame-Options",
-                      "value": "DENY"
-                    },
-                    {
-                      "key": "Content-Length",
-                      "value": "51"
-                    },
-                    {
-                      "key": "X-Content-Type-Options",
-                      "value": "nosniff"
-                    },
-                    {
-                      "key": "Referrer-Policy",
-                      "value": "same-origin"
-                    },
-                    {
-                      "key": "Cross-Origin-Opener-Policy",
-                      "value": "same-origin"
-                    }
-                  ],
-                  "cookie": [],
-                  "body": "{\n    \"message\": \"Verifications code sent to your email\"\n}"
-                }
-              ]
-            },
-            {
-              "name": "verifications otp",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"email\": \"mekop60271@hilostar.com\",\n    \"code\": \"914847\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{url}}/auth/forget-password/otp/verify/",
-                  "host": [
-                    "{{url}}"
-                  ],
-                  "path": [
-                    "user",
-                    "auth",
-                    "forget-password",
-                    "otp",
-                    "verify",
-                    ""
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "set-password",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"email\": \"mekop60271@hilostar.com\",\n    \"new_password\": \"#Required123\",\n    \"new_password_again\": \"#Required123\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{url}}/auth/forget-password/set/",
-                  "host": [
-                    "{{url}}"
-                  ],
-                  "path": [
-                    "user",
-                    "auth",
-                    "forget-password",
-                    "set",
-                    ""
-                  ]
-                }
-              },
-              "response": [
-                {
-                  "name": "not sent otp",
-                  "originalRequest": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n    \"email\": \"mekop60271@hilostar.com\",\n    \"new_password\": \"#Required123\",\n    \"new_password_again\": \"#Required123\"\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{url}}/auth/forget-password/set/",
-                      "host": [
-                        "{{url}}"
-                      ],
-                      "path": [
-                        "user",
-                        "auth",
-                        "forget-password",
-                        "set",
-                        ""
-                      ]
-                    }
-                  },
-                  "status": "Bad Request",
-                  "code": 400,
-                  "_postman_previewlanguage": null,
-                  "header": [
-                    {
-                      "key": "Date",
-                      "value": "Thu, 14 May 2026 14:10:43 GMT"
-                    },
-                    {
-                      "key": "Server",
-                      "value": "WSGIServer/0.2 CPython/3.9.6"
-                    },
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    },
-                    {
-                      "key": "Vary",
-                      "value": "Accept, origin"
-                    },
-                    {
-                      "key": "Allow",
-                      "value": "POST, OPTIONS"
-                    },
-                    {
-                      "key": "X-Frame-Options",
-                      "value": "DENY"
-                    },
-                    {
-                      "key": "Content-Length",
-                      "value": "33"
-                    },
-                    {
-                      "key": "X-Content-Type-Options",
-                      "value": "nosniff"
-                    },
-                    {
-                      "key": "Referrer-Policy",
-                      "value": "same-origin"
-                    },
-                    {
-                      "key": "Cross-Origin-Opener-Policy",
-                      "value": "same-origin"
-                    }
-                  ],
-                  "cookie": [],
-                  "body": "{\n    \"error\": \"Something went wrong!\"\n}"
-                }
-              ]
-            }
-          ]
-        },
-        {
-          "name": "change-password",
-          "item": [
-            {
-              "name": "change-password",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{url}}/auth/change-password/",
-                  "host": [
-                    "{{url}}"
-                  ],
-                  "path": [
-                    "user",
-                    "auth",
-                    "change-password",
-                    ""
-                  ]
-                }
-              },
-              "response": [
-                {
-                  "name": "success message",
-                  "originalRequest": {
-                    "method": "GET",
-                    "header": [],
-                    "url": {
-                      "raw": "{{url}}/auth/change-password/",
-                      "host": [
-                        "{{url}}"
-                      ],
-                      "path": [
-                        "user",
-                        "auth",
-                        "change-password",
-                        ""
-                      ]
-                    }
-                  },
-                  "status": "OK",
-                  "code": 200,
-                  "_postman_previewlanguage": null,
-                  "header": [
-                    {
-                      "key": "Date",
-                      "value": "Sat, 16 May 2026 13:24:37 GMT"
-                    },
-                    {
-                      "key": "Server",
-                      "value": "WSGIServer/0.2 CPython/3.9.6"
-                    },
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    },
-                    {
-                      "key": "Vary",
-                      "value": "Accept, origin"
-                    },
-                    {
-                      "key": "Allow",
-                      "value": "GET, POST, HEAD, OPTIONS"
-                    },
-                    {
-                      "key": "X-Frame-Options",
-                      "value": "DENY"
-                    },
-                    {
-                      "key": "Content-Length",
-                      "value": "60"
-                    },
-                    {
-                      "key": "X-Content-Type-Options",
-                      "value": "nosniff"
-                    },
-                    {
-                      "key": "Referrer-Policy",
-                      "value": "same-origin"
-                    },
-                    {
-                      "key": "Cross-Origin-Opener-Policy",
-                      "value": "same-origin"
-                    }
-                  ],
-                  "cookie": [],
-                  "body": "{\n    \"message\": \"you can change your password within 15 minutes\"\n}"
-                },
-                {
-                  "name": "hali o'zgartirishga dostup bor",
-                  "originalRequest": {
-                    "method": "GET",
-                    "header": [],
-                    "url": {
-                      "raw": "{{url}}/auth/change-password/",
-                      "host": [
-                        "{{url}}"
-                      ],
-                      "path": [
-                        "user",
-                        "auth",
-                        "change-password",
-                        ""
-                      ]
-                    }
-                  },
-                  "status": "OK",
-                  "code": 200,
-                  "_postman_previewlanguage": null,
-                  "header": [
-                    {
-                      "key": "Date",
-                      "value": "Sat, 16 May 2026 13:24:49 GMT"
-                    },
-                    {
-                      "key": "Server",
-                      "value": "WSGIServer/0.2 CPython/3.9.6"
-                    },
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    },
-                    {
-                      "key": "Vary",
-                      "value": "Accept, origin"
-                    },
-                    {
-                      "key": "Allow",
-                      "value": "GET, POST, HEAD, OPTIONS"
-                    },
-                    {
-                      "key": "X-Frame-Options",
-                      "value": "DENY"
-                    },
-                    {
-                      "key": "Content-Length",
-                      "value": "76"
-                    },
-                    {
-                      "key": "X-Content-Type-Options",
-                      "value": "nosniff"
-                    },
-                    {
-                      "key": "Referrer-Policy",
-                      "value": "same-origin"
-                    },
-                    {
-                      "key": "Cross-Origin-Opener-Policy",
-                      "value": "same-origin"
-                    }
-                  ],
-                  "cookie": [],
-                  "body": "{\n    \"message\": \"you can change your password within 2026-05-16 18:39:37.860925\"\n}"
-                }
-              ]
-            },
-            {
-              "name": "set-change-password",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"old_password\": \"#Required123\",\n    \"new_password\": \"#Fintechhub1234\",\n    \"new_password2\": \"#Fintechhub1234\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{url}}/auth/change-password/",
-                  "host": [
-                    "{{url}}"
-                  ],
-                  "path": [
-                    "user",
-                    "auth",
-                    "change-password",
-                    ""
-                  ]
-                }
-              },
-              "response": [
-                {
-                  "name": "o'zgarish tugagan bo'lsa",
-                  "originalRequest": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\n    \"old_password\": \"#Required123\",\n    \"new_password\": \"#Fintechhub1234\",\n    \"new_password2\": \"#Fintechhub1234\"\n}",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{url}}/auth/change-password/",
-                      "host": [
-                        "{{url}}"
-                      ],
-                      "path": [
-                        "user",
-                        "auth",
-                        "change-password",
-                        ""
-                      ]
-                    }
-                  },
-                  "status": "Bad Request",
-                  "code": 400,
-                  "_postman_previewlanguage": null,
-                  "header": [
-                    {
-                      "key": "Date",
-                      "value": "Sat, 16 May 2026 13:24:07 GMT"
-                    },
-                    {
-                      "key": "Server",
-                      "value": "WSGIServer/0.2 CPython/3.9.6"
-                    },
-                    {
-                      "key": "Content-Type",
-                      "value": "application/json"
-                    },
-                    {
-                      "key": "Vary",
-                      "value": "Accept, origin"
-                    },
-                    {
-                      "key": "Allow",
-                      "value": "GET, POST, HEAD, OPTIONS"
-                    },
-                    {
-                      "key": "X-Frame-Options",
-                      "value": "DENY"
-                    },
-                    {
-                      "key": "Content-Length",
-                      "value": "45"
-                    },
-                    {
-                      "key": "X-Content-Type-Options",
-                      "value": "nosniff"
-                    },
-                    {
-                      "key": "Referrer-Policy",
-                      "value": "same-origin"
-                    },
-                    {
-                      "key": "Cross-Origin-Opener-Policy",
-                      "value": "same-origin"
-                    }
-                  ],
-                  "cookie": [],
-                  "body": "{\n    \"error\": \"You can open change request first\"\n}"
-                }
-              ]
-            }
-          ],
-          "auth": {
-            "type": "bearer",
-            "bearer": [
-              {
-                "key": "token",
-                "value": "{{access_token}}",
-                "type": "string"
-              }
-            ]
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {},
-                "exec": [
-                  ""
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {},
-                "exec": [
-                  ""
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "change-email",
-          "item": [
-            {
-              "name": "change-email",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{url}}/auth/change-email/",
-                  "host": [
-                    "{{url}}"
-                  ],
-                  "path": [
-                    "user",
-                    "auth",
-                    "change-email",
-                    ""
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "change-email-2",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"email\": \"lederas633@nriza.com\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{url}}/auth/change-email/",
-                  "host": [
-                    "{{url}}"
-                  ],
-                  "path": [
-                    "user",
-                    "auth",
-                    "change-email",
-                    ""
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "verification-code-verifi",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n    \"code\": \"927953\"\n    // \"code\": \"489878\"\n}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
-                },
-                "url": {
-                  "raw": "{{url}}/auth/change-email/verification/",
-                  "host": [
-                    "{{url}}"
-                  ],
-                  "path": [
-                    "user",
-                    "auth",
-                    "change-email",
-                    "verification",
-                    ""
-                  ]
-                }
-              },
-              "response": []
-            },
-            {
-              "name": "verifications-code-resend",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "url": {
-                  "raw": "{{url}}/auth/change-email/verification/resend/otp/",
-                  "host": [
-                    "{{url}}"
-                  ],
-                  "path": [
-                    "user",
-                    "auth",
-                    "change-email",
-                    "verification",
-                    "resend",
-                    "otp",
-                    ""
-                  ]
-                }
-              },
-              "response": []
-            }
-          ],
-          "auth": {
-            "type": "bearer",
-            "bearer": [
-              {
-                "key": "token",
-                "value": "{{access_token}}",
-                "type": "string"
-              }
-            ]
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {},
-                "exec": [
-                  ""
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {},
-                "exec": [
-                  ""
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "login",
+          "name": "Register (demo user)",
           "request": {
             "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"email\": \"lederas633@nriza.com\",\n    \"password\": \"Qwerty123#\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
               }
-            },
-            "url": {
-              "raw": "{{url}}/auth/login/",
-              "host": [
-                "{{url}}"
-              ],
-              "path": [
-                "user",
-                "auth",
-                "login",
-                ""
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "register",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"first_name\": \"Abror\",\n    \"last_name\": \"Rahmatullayev\",\n    \"email\": \"xetef78552@nriza.com\",\n    \"password\": \"Qwerty123#\",\n    \"password2\": \"Qwerty123#\",\n    // \"otp_type\": \"link\"\n    \"otp_type\": \"otp\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
+            ],
             "url": {
               "raw": "{{url}}/auth/register/",
               "host": [
@@ -747,77 +37,2342 @@
               ],
               "path": [
                 "auth",
-                "auth",
                 "register",
                 ""
               ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "verifi otp email",
-          "request": {
-            "method": "POST",
-            "header": [],
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"email\": \"lederas633@nriza.com\",\n    \"code\": \"626230\"\n}",
+              "raw": "{\n    \"first_name\": \"Demo\",\n    \"last_name\": \"User\",\n    \"middle_name\": \"Testovich\",\n    \"email\": \"{{demo_email}}\",\n    \"password\": \"{{demo_password}}\",\n    \"confirm_password\": \"{{demo_password}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Creates a fresh demo account. The pre-request script generates a unique email so the folder can be re-run without a duplicate-email 400."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set(\"demo_email\", \"demo+\" + Date.now() + \"@example.com\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});",
+                  "const b = pm.response.json();",
+                  "pm.environment.set(\"demo_user_id\", b.data.id);",
+                  "pm.test(\"middle_name (отчество) is stored\", () => pm.expect(b.data.middle_name).to.eql(\"Testovich\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": {
-              "raw": "{{url}}/auth/register/otp/verify/",
+              "raw": "{{url}}/auth/login/",
               "host": [
                 "{{url}}"
               ],
               "path": [
-                "user",
                 "auth",
-                "register",
-                "otp",
-                "verify",
+                "login",
                 ""
               ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "auth resend code",
-          "request": {
-            "method": "POST",
-            "header": [],
+            },
             "body": {
               "mode": "raw",
-              "raw": "{\n    \"email\": \"mekop60271@hilostar.com\"\n}",
+              "raw": "{\n    \"email\": \"{{admin_email}}\",\n    \"password\": \"{{admin_password}}\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
             },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "The seeded administrator (created by `python manage.py seed_data`).\nCaptures the token pair into {{access_token}} / {{refresh_token}} — every admin-only request in this collection uses them via collection-level auth."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});",
+                  "const b = pm.response.json();",
+                  "pm.environment.set(\"access_token\", b.data.access);",
+                  "pm.environment.set(\"refresh_token\", b.data.refresh);",
+                  "pm.test(\"returns a token pair\", () => pm.expect(b.data).to.have.all.keys(\"access\", \"refresh\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (demo user)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "url": {
-              "raw": "{{url}}/auth/resend/otp/",
+              "raw": "{{url}}/auth/login/",
               "host": [
                 "{{url}}"
               ],
               "path": [
-                "user",
                 "auth",
-                "resend",
-                "otp",
+                "login",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{demo_email}}\",\n    \"password\": \"{{demo_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Kept in separate variables so the self-service flow below never clobbers the admin's token."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});",
+                  "const b = pm.response.json();",
+                  "pm.environment.set(\"demo_access_token\", b.data.access);",
+                  "pm.environment.set(\"demo_refresh_token\", b.data.refresh);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get profile (demo)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/auth/profile/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "profile",
+                ""
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demo_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Проверяет, что после login система идентифицирует пользователя."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});",
+                  "pm.test(\"it is the demo user\", () => pm.expect(pm.response.json().data.email).to.eql(pm.environment.get(\"demo_email\")));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update profile (demo)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/auth/profile/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "profile",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"first_name\": \"Updated\",\n    \"middle_name\": \"Ivanovich\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demo_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Обновление информации: пользователь редактирует свой профиль.\n\nid, is_active and date_joined are read-only — is_active especially, or a soft-deleted user could reactivate themselves."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});",
+                  "pm.test(\"field was updated\", () => pm.expect(pm.response.json().data.first_name).to.eql(\"Updated\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout (demo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/auth/logout/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "logout",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refresh\": \"{{demo_refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demo_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Blacklists the refresh token. The access token stays valid until it expires — inherent to stateless JWT."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout again -> 400 (token already blacklisted)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/auth/logout/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "logout",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"refresh\": \"{{demo_refresh_token}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demo_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Proves the refresh token really was blacklisted."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"error envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"errors\");",
+                  "    pm.expect(b.success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (demo) again",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/auth/login/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "login",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{demo_email}}\",\n    \"password\": \"{{demo_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Fresh tokens before the soft-delete step below."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});",
+                  "const b = pm.response.json();",
+                  "pm.environment.set(\"demo_access_token\", b.data.access);",
+                  "pm.environment.set(\"demo_refresh_token\", b.data.refresh);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete profile (soft delete)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/auth/profile/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "profile",
+                ""
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demo_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Удаление аккаунта (мягкое): is_active=False, все refresh-токены в blacklist.\nСтрока в базе остается. Returns 200 (not 204) because every response in this API carries the envelope, and HTTP forbids a body on 204."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Profile after delete -> 401 (происходит logout)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/auth/profile/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "profile",
+                ""
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{demo_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "The same token that worked a moment ago is now rejected: SimpleJWT refuses tokens belonging to an inactive user."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"error envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"errors\");",
+                  "    pm.expect(b.success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login after delete -> 401 (не может залогиниться)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/auth/login/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "login",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{demo_email}}\",\n    \"password\": \"{{demo_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"error envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"errors\");",
+                  "    pm.expect(b.success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Roles (admin)",
+      "description": "role.view to read, role.manage to write.",
+      "item": [
+        {
+          "name": "List roles",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/roles/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "roles",
+                ""
+              ]
+            },
+            "description": "Requires `role.view`. Paginated — count/pages/results live inside `data`."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});",
+                  "const b = pm.response.json();",
+                  "pm.test(\"pagination is nested in data\", () => pm.expect(b.data).to.include.keys(\"count\", \"pages\", \"results\"));",
+                  "if (b.data.results.length) { pm.environment.set(\"role_id\", b.data.results[0].id); }",
+                  "const admin = b.data.results.find(r => r.name === \"Admin\");",
+                  "if (admin) { pm.environment.set(\"admin_role_id\", admin.id); }",
+                  "const guest = b.data.results.find(r => r.name === \"Guest\");",
+                  "if (guest) { pm.environment.set(\"guest_role_id\", guest.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List roles - search",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/roles/?search=manager",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "roles",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "manager"
+                }
+              ]
+            },
+            "description": "Search runs over name and description."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List roles - ordering + paging",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/roles/?ordering=-created_at&page=1&page_size=2",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "roles",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "ordering",
+                  "value": "-created_at"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "2"
+                }
+              ]
+            },
+            "description": "ordering: name | created_at | updated_at, prefix `-` to reverse."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/roles/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "roles",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Auditor\",\n    \"description\": \"Read-only auditor role\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Requires `role.manage`. Names are unique case-insensitively."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "const b = pm.response.json();",
+                  "pm.environment.set(\"created_role_id\", b.data.id);",
+                  "pm.test(\"created\", () => pm.expect(b.data.name).to.eql(\"Auditor\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create role - duplicate name -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/roles/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "roles",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"AUDITOR\",\n    \"description\": \"same name, different case\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Uniqueness is case-insensitive, so this is rejected."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"error envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"errors\");",
+                  "    pm.expect(b.success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Retrieve role",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/roles/{{created_role_id}}/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "roles",
+                "{{created_role_id}}",
                 ""
               ]
             }
           },
-          "response": []
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update role (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/roles/{{created_role_id}}/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "roles",
+                "{{created_role_id}}",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Auditor\",\n    \"description\": \"Replaced description\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update role (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/roles/{{created_role_id}}/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "roles",
+                "{{created_role_id}}",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"description\": \"Patched description\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete role",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/roles/{{created_role_id}}/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "roles",
+                "{{created_role_id}}",
+                ""
+              ]
+            },
+            "description": "Also removes the role's permission grants and revokes it from every user who held it. Returns 200 with the envelope."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Permissions (admin)",
+      "description": "permission.view to read, permission.manage to write.",
+      "item": [
+        {
+          "name": "List permissions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/permissions/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "permissions",
+                ""
+              ]
+            },
+            "description": "Requires `permission.view`."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});",
+                  "const b = pm.response.json();",
+                  "if (b.data.results.length) { pm.environment.set(\"permission_id\", b.data.results[0].id); }",
+                  "const mock = b.data.results.find(p => p.code === \"mock.view\");",
+                  "if (mock) { pm.environment.set(\"mock_view_permission_id\", mock.id); }"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter - exact code",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/permissions/?code=mock.view",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "permissions",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "code",
+                  "value": "mock.view"
+                }
+              ]
+            },
+            "description": "Exact, case-insensitive. Unlike ?search=, which matches loosely."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter - namespace",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/permissions/?namespace=user",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "permissions",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "namespace",
+                  "value": "user"
+                }
+              ]
+            },
+            "description": "Everything under `user.*`."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter - by role name",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/permissions/?role_name=Manager",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "permissions",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "role_name",
+                  "value": "Manager"
+                }
+              ]
+            },
+            "description": "What a given role carries."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter - unassigned",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/permissions/?unassigned=true",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "permissions",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "unassigned",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Permissions no role grants."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search permissions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/permissions/?search=mock",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "permissions",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "mock"
+                }
+              ]
+            },
+            "description": "Loose match across code, name and description."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create permission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/permissions/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "permissions",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"code\": \"report.export\",\n    \"name\": \"Export reports\",\n    \"description\": \"Allows exporting reports\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Requires `permission.manage`. Codes are lowercased on write and must be dotted lowercase words — a stored `Report.Export` could never match a `report.export` check."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "pm.environment.set(\"created_permission_id\", pm.response.json().data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create permission - malformed code -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/permissions/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "permissions",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"code\": \"Bad Code!\",\n    \"name\": \"Nope\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"error envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"errors\");",
+                  "    pm.expect(b.success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Retrieve permission",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/permissions/{{created_permission_id}}/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "permissions",
+                "{{created_permission_id}}",
+                ""
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update permission (PATCH)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/permissions/{{created_permission_id}}/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "permissions",
+                "{{created_permission_id}}",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Export reports (v2)\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete permission",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/permissions/{{created_permission_id}}/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "permissions",
+                "{{created_permission_id}}",
+                ""
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Assignment (admin)",
+      "description": "Права пользователю через роли; права роли.",
+      "item": [
+        {
+          "name": "Assign roles to user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/assign-role/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "assign-role",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"user\": \"{{demo_user_id}}\",\n    \"roles\": [\n        \"{{guest_role_id}}\"\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Requires `role.manage`. Idempotent: assigning a role the user already holds is a no-op reported under `already_assigned`."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});",
+                  "pm.test(\"reports what changed\", () => pm.expect(pm.response.json().data).to.include.keys(\"roles\", \"added\", \"already_assigned\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assign again -> already_assigned",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/assign-role/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "assign-role",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"user\": \"{{demo_user_id}}\",\n    \"roles\": [\n        \"{{guest_role_id}}\"\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Proves idempotency: no duplicate row, no error."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});",
+                  "pm.test(\"no-op\", () => pm.expect(pm.response.json().data.added).to.be.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Replace user roles (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/assign-role/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "assign-role",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"user\": \"{{demo_user_id}}\",\n    \"roles\": [\n        \"{{guest_role_id}}\"\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Sets the user's roles to exactly this list. An empty list strips all."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove user roles (DELETE)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/assign-role/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "assign-role",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"user\": \"{{demo_user_id}}\",\n    \"roles\": [\n        \"{{guest_role_id}}\"\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assign roles - duplicate ids -> 400",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/assign-role/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "assign-role",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"user\": \"{{demo_user_id}}\",\n    \"roles\": [\n        \"{{guest_role_id}}\",\n        \"{{guest_role_id}}\"\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Repeating an id in one payload is a client bug, so it is rejected."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 400\", () => pm.response.to.have.status(400));",
+                  "pm.test(\"error envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"errors\");",
+                  "    pm.expect(b.success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assign permissions to role",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/assign-permission/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "assign-permission",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"role\": \"{{guest_role_id}}\",\n    \"permissions\": [\n        \"{{mock_view_permission_id}}\"\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Requires `permission.manage`.\n\nTakes effect immediately: every user holding this role sees it on their very next request — no re-login, no token refresh."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Replace role permissions (PUT)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/assign-permission/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "assign-permission",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"role\": \"{{guest_role_id}}\",\n    \"permissions\": []\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "An empty list strips every permission — this restores Guest to its seeded state (Guest holds nothing)."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove role permissions (DELETE)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/assign-permission/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "assign-permission",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"role\": \"{{guest_role_id}}\",\n    \"permissions\": [\n        \"{{mock_view_permission_id}}\"\n    ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "description": "Idempotent: removing what the role does not carry is reported under `not_assigned`, not an error."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Mock business objects",
+      "description": "Требуют mock.view. Таблиц в БД нет.",
+      "item": [
+        {
+          "name": "Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/mock/projects/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "mock",
+                "projects",
+                ""
+              ]
+            },
+            "description": "Requires `mock.view`. Static JSON — no database table."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});",
+                  "pm.test(\"returns the objects\", () => pm.expect(pm.response.json().data).to.be.an(\"array\"));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Orders",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/mock/orders/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "mock",
+                "orders",
+                ""
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Employees",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/mock/employees/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "mock",
+                "employees",
+                ""
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Documents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/mock/documents/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "mock",
+                "documents",
+                ""
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. 401 / 403 / 404 / 405",
+      "description": "Демонстрация правил доступа и конверта ошибок.",
+      "item": [
+        {
+          "name": "401 - no token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/mock/projects/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "mock",
+                "projects",
+                ""
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Если по входящему запросу не удается определить залогиненного пользователя, выдается ошибка 401."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"error envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"errors\");",
+                  "    pm.expect(b.success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "401 - garbage token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/mock/projects/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "mock",
+                "projects",
+                ""
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "not-a-real-token",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"error envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"errors\");",
+                  "    pm.expect(b.success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Setup - register a user with no roles",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/auth/register/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "register",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"first_name\": \"No\",\n    \"last_name\": \"Perms\",\n    \"email\": \"{{noperm_email}}\",\n    \"password\": \"{{demo_password}}\",\n    \"confirm_password\": \"{{demo_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "A freshly registered user holds no roles, and therefore no permissions."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.environment.set(\"noperm_email\", \"noperm+\" + Date.now() + \"@example.com\");"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 201\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Setup - login as that user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/auth/login/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "auth",
+                "login",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{noperm_email}}\",\n    \"password\": \"{{demo_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"success envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"data\");",
+                  "    pm.expect(b.success).to.be.true;",
+                  "});",
+                  "pm.environment.set(\"noperm_access_token\", pm.response.json().data.access);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "403 - authenticated, no permission",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/roles/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "roles",
+                ""
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{noperm_access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Если пользователь определен, но запрашиваемый ресурс ему не доступен — 403 Forbidden.\n\nThe account above is authenticated (so not 401) but holds no `role.view` permission."
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"error envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"errors\");",
+                  "    pm.expect(b.success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "404 - unknown id",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{url}}/roles/11111111-1111-1111-1111-111111111111/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "roles",
+                "11111111-1111-1111-1111-111111111111",
+                ""
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"error envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"errors\");",
+                  "    pm.expect(b.success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "405 - method not allowed",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{url}}/mock/projects/",
+              "host": [
+                "{{url}}"
+              ],
+              "path": [
+                "mock",
+                "projects",
+                ""
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 405\", () => pm.response.to.have.status(405));",
+                  "pm.test(\"error envelope\", () => {",
+                  "    const b = pm.response.json();",
+                  "    pm.expect(b).to.have.all.keys(\"success\", \"message\", \"errors\");",
+                  "    pm.expect(b.success).to.be.false;",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     }
   ]
-  
 }

@@ -191,8 +191,15 @@ All commands run from `src/`. No settings flag is needed — `manage.py` sets
 The API is then at `http://127.0.0.1:8000/api/v1/`, with interactive docs at `/api/v1/docs/`
 (Swagger UI), `/api/v1/redoc/`, and the raw OpenAPI schema at `/api/v1/schema/`.
 
-Postman collections for manual API exercise: `src/postman-workflows.json` +
-`src/postman-variables.json` (usage walkthrough in `src/postman-workflows-usage.gif`).
+Postman: import `src/postman-variables.json` as an environment, then
+`src/postman-workflows.json` as a collection, and run **1. Auth > Login (admin)** — its test script
+stores the token pair, which collection-level bearer auth then feeds to every admin request. The
+folders are ordered to run top-to-bottom in the Collection Runner; each captures the ids the next
+needs. Verified with `npx newman run src/postman-workflows.json -e src/postman-variables.json`
+(50 requests, 107 assertions, green, and re-runnable).
+
+⚠️ `src/postman-workflows-usage.gif` predates the rewrite — it walks through the template's old OTP
+flow, which no longer exists.
 
 Production is served by gunicorn via `deployment/gunicorn.service` + `gunicorn.socket` behind
 `deployment/nginx.conf`.

@@ -422,6 +422,25 @@ revoked. To reconcile exactly to the declared catalogue and drop undeclared gran
 python manage.py seed_data --prune
 ```
 
+## Postman
+
+`postman-workflows.json` + `postman-variables.json` exercise the whole API.
+
+1. Import `postman-variables.json` as an **environment** and select it.
+2. Import `postman-workflows.json` as a **collection**.
+3. Run **1. Auth > Login (admin)** — it stores the token pair; every admin request picks it up
+   automatically via collection-level bearer auth.
+
+Or run the lot headless:
+
+```bash
+npx newman run src/postman-workflows.json -e src/postman-variables.json
+```
+
+Six folders, 50 requests, 107 assertions — each folder captures the ids the next needs (role_id,
+permission_id, demo_user_id…), so the collection runs top-to-bottom with nothing pasted by hand, and
+is safe to re-run. Folder 6 demonstrates the 401/403/404/405 rules directly.
+
 ## Development
 
 Both tools run from the repository root:
