@@ -170,7 +170,15 @@ Nothing is version-pinned. A fresh install resolves to latest (currently Django 
 
 ### How the server runs locally
 
-Per `src/qollanma.md` (**never modify that file**), plus the `.env` step it omits:
+`src/qollanma.md` is the Uzbek quick-start guide; `src/README.md` is the full Russian
+documentation. The two must agree.
+
+*(The "never modify qollanma.md" rule was lifted by the owner on 2026-07-17 — the guide had gone
+stale: it skipped the `.env` step, so following it verbatim failed at `migrate` with
+`ImproperlyConfigured`, and it still pointed at a deleted GIF. It is now correct and verified
+against a clean clone.)*
+
+The steps:
 
 ```bash
 cd src
