@@ -11,7 +11,7 @@ pytestmark = pytest.mark.django_db
 def test_logout_blacklists_the_refresh_token(auth_client, tokens):
     response = auth_client.post(URL, {'refresh': tokens['refresh']}, format='json')
 
-    assert response.status_code == 205, response.data
+    assert response.status_code == 200, response.data
     assert BlacklistedToken.objects.count() == 1
 
 

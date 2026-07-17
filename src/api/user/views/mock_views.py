@@ -81,20 +81,23 @@ class DocumentSerializer(serializers.Serializer):
 
 
 class StaticMockView(APIView):
-    """Returns `payload` verbatim to anyone holding `mock.view`.
+    """Returns `payload` to anyone holding `mock.view`.
 
-    The response is a bare JSON array, not a paginated envelope: these stand in for
-    fixed reference data, and the assignment specifies the array shape.
+    The payload is a bare array; it arrives at the client under the standard
+    envelope's `data` key, like every other endpoint's body.
     """
 
     permission_classes = [CanViewMock]
     payload = []
+    success_message = 'Retrieved successfully.'
 
     def get(self, request):
         # deepcopy, not the constant itself: the payload lives for the life of the
         # process, so anything that mutated response.data — a renderer, middleware,
         # a test — would corrupt it for every later request.
-        return Response(deepcopy(self.payload), status=status.HTTP_200_OK)
+        response = Response(deepcopy(self.payload), status=status.HTTP_200_OK)
+        response.success_message = self.success_message
+        return response
 
 
 @extend_schema(
@@ -105,6 +108,7 @@ class StaticMockView(APIView):
 )
 class MockProjectsView(StaticMockView):
     payload = PROJECTS
+    success_message = 'Projects retrieved successfully.'
 
 
 @extend_schema(
@@ -115,6 +119,7 @@ class MockProjectsView(StaticMockView):
 )
 class MockOrdersView(StaticMockView):
     payload = ORDERS
+    success_message = 'Orders retrieved successfully.'
 
 
 @extend_schema(
@@ -125,6 +130,7 @@ class MockOrdersView(StaticMockView):
 )
 class MockEmployeesView(StaticMockView):
     payload = EMPLOYEES
+    success_message = 'Employees retrieved successfully.'
 
 
 @extend_schema(
@@ -135,3 +141,4 @@ class MockEmployeesView(StaticMockView):
 )
 class MockDocumentsView(StaticMockView):
     payload = DOCUMENTS
+    success_message = 'Documents retrieved successfully.'

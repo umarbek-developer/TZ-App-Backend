@@ -105,7 +105,7 @@ def test_assign_response_shape(admin_client, role, permissions):
         URL, body(role, permissions['mock.view'], permissions['user.view']), format='json'
     )
 
-    assert response.data == {
+    assert response.data['data'] == {
         'role': {'id': str(role.pk), 'name': 'Crew'},
         'permissions': ['mock.view', 'user.view'],
         'added': ['mock.view'],
@@ -119,8 +119,8 @@ def test_assigning_an_already_carried_permission_is_a_noop(admin_client, role, p
     response = admin_client.post(URL, body(role, permissions['mock.view']), format='json')
 
     assert response.status_code == 200
-    assert response.data['added'] == []
-    assert response.data['already_assigned'] == ['mock.view']
+    assert response.data['data']['added'] == []
+    assert response.data['data']['already_assigned'] == ['mock.view']
     grants = RolePermission.objects.filter(role=role, permission=permissions['mock.view'])
     assert grants.count() == 1
 
@@ -242,10 +242,10 @@ def test_replace_response_shape(admin_client, role, permissions):
         URL, body(role, permissions['mock.view'], permissions['user.update']), format='json'
     )
 
-    assert response.data['permissions'] == ['mock.view', 'user.update']
-    assert response.data['added'] == ['mock.view']
-    assert response.data['removed'] == ['user.view']
-    assert response.data['unchanged'] == ['user.update']
+    assert response.data['data']['permissions'] == ['mock.view', 'user.update']
+    assert response.data['data']['added'] == ['mock.view']
+    assert response.data['data']['removed'] == ['user.view']
+    assert response.data['data']['unchanged'] == ['user.update']
 
 
 def test_replace_with_an_empty_list_strips_everything(admin_client, role, permissions):
@@ -256,7 +256,7 @@ def test_replace_with_an_empty_list_strips_everything(admin_client, role, permis
 
     assert response.status_code == 200
     assert carried(role) == []
-    assert response.data['removed'] == ['mock.view', 'user.view']
+    assert response.data['data']['removed'] == ['mock.view', 'user.view']
 
 
 def test_replace_is_idempotent(admin_client, role, permissions):
@@ -264,8 +264,8 @@ def test_replace_is_idempotent(admin_client, role, permissions):
         response = admin_client.put(URL, body(role, permissions['mock.view']), format='json')
 
     assert RolePermission.objects.filter(role=role).count() == 1
-    assert response.data['added'] == []
-    assert response.data['unchanged'] == ['mock.view']
+    assert response.data['data']['added'] == []
+    assert response.data['data']['unchanged'] == ['mock.view']
 
 
 def test_replace_rejects_an_unknown_permission(admin_client, role, permissions):
@@ -319,17 +319,17 @@ def test_remove_response_shape(admin_client, role, permissions):
         URL, body(role, permissions['mock.view'], permissions['user.view']), format='json'
     )
 
-    assert response.data['permissions'] == []
-    assert response.data['removed'] == ['mock.view']
-    assert response.data['not_assigned'] == ['user.view']
+    assert response.data['data']['permissions'] == []
+    assert response.data['data']['removed'] == ['mock.view']
+    assert response.data['data']['not_assigned'] == ['user.view']
 
 
 def test_removing_a_permission_the_role_lacks_is_a_noop(admin_client, role, permissions):
     response = admin_client.delete(URL, body(role, permissions['mock.view']), format='json')
 
     assert response.status_code == 200
-    assert response.data['removed'] == []
-    assert response.data['not_assigned'] == ['mock.view']
+    assert response.data['data']['removed'] == []
+    assert response.data['data']['not_assigned'] == ['mock.view']
 
 
 def test_remove_does_not_delete_the_permission_itself(admin_client, role, permissions):

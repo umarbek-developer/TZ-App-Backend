@@ -80,7 +80,11 @@ def call(view, user=None):
     request = factory.get('/')
     if user is not None:
         force_authenticate(request, user=user)
-    return view.as_view()(request)
+    response = view.as_view()(request)
+    # Render so the body matches what a client would receive: APIRequestFactory
+    # skips rendering, and the success envelope is applied by the renderer.
+    response.render()
+    return response
 
 
 @pytest.fixture
@@ -105,7 +109,7 @@ def test_authenticated_with_permission_is_allowed(user):
     response = call(MockView, user)
 
     assert response.status_code == 200
-    assert response.data == {'ok': True}
+    assert response.data['data'] == {'ok': True}
 
 
 def test_role_without_the_code_gets_403(user):

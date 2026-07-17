@@ -97,7 +97,7 @@ def test_admin_can_list(admin_client, role):
     response = admin_client.get(URL)
 
     assert response.status_code == 200
-    names = [r['name'] for r in response.data['results']]
+    names = [r['name'] for r in response.data['data']['results']]
     assert 'Manager' in names
 
 
@@ -105,8 +105,8 @@ def test_admin_can_retrieve(admin_client, role):
     response = admin_client.get(detail(role))
 
     assert response.status_code == 200
-    assert response.data['name'] == 'Manager'
-    assert response.data['description'] == 'Runs a team'
+    assert response.data['data']['name'] == 'Manager'
+    assert response.data['data']['description'] == 'Runs a team'
 
 
 def test_retrieve_unknown_role_is_404(admin_client):
@@ -119,7 +119,7 @@ def test_payload_exposes_the_roles_permission_codes(admin_client, role):
 
     response = admin_client.get(detail(role))
 
-    assert response.data['permissions'] == ['mock.view']
+    assert response.data['data']['permissions'] == ['mock.view']
 
 
 def test_permissions_are_read_only(admin_client, role):
@@ -131,7 +131,7 @@ def test_permissions_are_read_only(admin_client, role):
 
     assert response.status_code == 200
     # Grants are managed by the assign-permission endpoint, not by editing a role.
-    assert response.data['permissions'] == []
+    assert response.data['data']['permissions'] == []
 
 
 # --- create ------------------------------------------------------------------
@@ -144,7 +144,7 @@ def test_admin_can_create(admin_client):
 
     assert response.status_code == 201, response.data
     assert Role.objects.filter(name='Auditor').exists()
-    assert response.data['permissions'] == []
+    assert response.data['data']['permissions'] == []
 
 
 def test_create_without_description_is_allowed(admin_client):
@@ -157,7 +157,7 @@ def test_create_without_description_is_allowed(admin_client):
 def test_create_returns_a_uuid_id(admin_client):
     response = admin_client.post(URL, {'name': 'Auditor'}, format='json')
 
-    assert str(Role.objects.get(name='Auditor').pk) == response.data['id']
+    assert str(Role.objects.get(name='Auditor').pk) == response.data['data']['id']
 
 
 # --- validation --------------------------------------------------------------
@@ -208,7 +208,7 @@ def test_create_strips_surrounding_whitespace(admin_client):
     response = admin_client.post(URL, {'name': '  Auditor  '}, format='json')
 
     assert response.status_code == 201
-    assert response.data['name'] == 'Auditor'
+    assert response.data['data']['name'] == 'Auditor'
 
 
 def test_update_may_keep_its_own_name(admin_client, role):
@@ -218,7 +218,7 @@ def test_update_may_keep_its_own_name(admin_client, role):
     )
 
     assert response.status_code == 200, response.data
-    assert response.data['description'] == 'Changed'
+    assert response.data['data']['description'] == 'Changed'
 
 
 def test_update_rejects_a_name_taken_by_another_role(admin_client, role):
@@ -240,7 +240,7 @@ def test_read_only_fields_cannot_be_written(admin_client, role):
     )
 
     assert response.status_code == 200
-    assert response.data['id'] == original_id
+    assert response.data['data']['id'] == original_id
 
 
 # --- update ------------------------------------------------------------------
@@ -279,7 +279,7 @@ def test_admin_can_patch(admin_client, role):
 def test_admin_can_delete(admin_client, role):
     response = admin_client.delete(detail(role))
 
-    assert response.status_code == 204
+    assert response.status_code == 200
     assert not Role.objects.filter(pk=role.pk).exists()
 
 

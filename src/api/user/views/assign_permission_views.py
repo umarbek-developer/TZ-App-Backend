@@ -156,10 +156,12 @@ class AssignPermissionView(APIView):
         )
         self._invalidate(request)
 
-        return Response(
+        response = Response(
             _payload(role, added=_codes(added), already_assigned=_codes(already)),
             status=status.HTTP_200_OK,
         )
+        response.success_message = 'Permissions assigned successfully.'
+        return response
 
     @transaction.atomic
     def put(self, request):
@@ -182,7 +184,7 @@ class AssignPermissionView(APIView):
         )
         self._invalidate(request)
 
-        return Response(
+        response = Response(
             _payload(
                 role,
                 added=_codes(added),
@@ -191,6 +193,8 @@ class AssignPermissionView(APIView):
             ),
             status=status.HTTP_200_OK,
         )
+        response.success_message = 'Role permissions replaced successfully.'
+        return response
 
     @transaction.atomic
     def delete(self, request):
@@ -207,7 +211,9 @@ class AssignPermissionView(APIView):
         ).delete()
         self._invalidate(request)
 
-        return Response(
+        response = Response(
             _payload(role, removed=_codes(removed), not_assigned=_codes(not_assigned)),
             status=status.HTTP_200_OK,
         )
+        response.success_message = 'Permissions removed successfully.'
+        return response

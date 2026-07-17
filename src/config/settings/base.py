@@ -102,6 +102,11 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+    # Wraps every successful body in the standard envelope. See api/renderers.py.
+    'DEFAULT_RENDERER_CLASSES': [
+        'api.renderers.EnvelopeJSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
     'DEFAULT_PAGINATION_CLASS': 'api.pagination.CustomPagination',
     'PAGE_SIZE': 10,
     # Secure by default: endpoints require a valid token unless they opt out with
@@ -122,10 +127,23 @@ REST_FRAMEWORK = {
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'TZ-App Backend API',
-    'DESCRIPTION': 'JWT authentication API. RBAC is added in a later step.',
+    'DESCRIPTION': (
+        'JWT authentication with role-based access control.\n\n'
+        'Every response uses one envelope. Success:\n\n'
+        '    {"success": true, "message": "...", "data": {}}\n\n'
+        'Failure:\n\n'
+        '    {"success": false, "message": "...", "errors": {}}\n\n'
+        'Send the access token as `Authorization: Bearer <token>`.'
+    ),
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
     'SCHEMA_PATH_PREFIX': '/api/v1',
+    # Views declare the payload they return; this rewrites each documented body
+    # into the envelope the renderer actually sends, so docs cannot drift.
+    'POSTPROCESSING_HOOKS': [
+        'drf_spectacular.hooks.postprocess_schema_enums',
+        'api.schema.envelope_responses',
+    ],
 }
 
 

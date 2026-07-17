@@ -62,11 +62,11 @@ Authorization: Bearer <access token>
 | Method | Endpoint | Auth | Result |
 | --- | --- | --- | --- |
 | POST | `/api/v1/auth/register/` | — | 201, creates an active user |
-| POST | `/api/v1/auth/login/` | — | 200 `{refresh, access}` |
-| POST | `/api/v1/auth/logout/` | ✅ | 205, blacklists the refresh token |
+| POST | `/api/v1/auth/login/` | — | 200, `data` = `{refresh, access}` |
+| POST | `/api/v1/auth/logout/` | ✅ | 200, blacklists the refresh token |
 | GET | `/api/v1/auth/profile/` | ✅ | 200, the current user |
 | PATCH | `/api/v1/auth/profile/` | ✅ | 200, updates the current user |
-| DELETE | `/api/v1/auth/profile/` | ✅ | 204, soft delete |
+| DELETE | `/api/v1/auth/profile/` | ✅ | 200, soft delete |
 
 **Logout** blacklists the refresh token so it can no longer mint access tokens. The access token
 itself stays valid until it expires — inherent to stateless JWT.
@@ -223,17 +223,55 @@ database on each request and memoised only for that request's lifetime, so there
 to invalidate across requests. The JWT carries identity, never permissions — which is exactly why a
 token issued before the grant still picks it up.
 
-## Error responses
+## Response format
 
-Every error the API returns — validation, authentication, permissions, not-found, and anything
-unforeseen — comes back in one envelope:
+**Every** response from every endpoint uses one of two envelopes, and nothing else.
+
+Success:
 
 ```json
-{ "success": false, "message": "...", "errors": {} }
+{ "success": true, "message": "Roles retrieved successfully.", "data": { } }
 ```
 
-`message` is a human-readable sentence. `errors` carries field-scoped detail, and is `{}` for errors
-that have no per-field breakdown — so a client can read every failure the same way.
+Failure:
+
+```json
+{ "success": false, "message": "Validation failed.", "errors": { "name": ["This field may not be blank."] } }
+```
+
+`success` tells a client which shape it is holding without inspecting the status code. `data` is the
+payload — an object, an array, or `{}` when there is nothing to return. `errors` carries field-scoped
+detail and is `{}` for failures with no per-field breakdown. The two never mix: a success body has no
+`errors` key, a failure body has no `data` key.
+
+List endpoints keep their pagination **inside** `data`:
+
+```json
+{
+  "success": true,
+  "message": "Roles retrieved successfully.",
+  "data": { "count": 4, "pages": 1, "results": [ {"id": "…", "name": "Admin"} ] }
+}
+```
+
+Applied by `api/renderers.py` (successes) and `api/exceptions.py` (failures) — not by individual
+views, so DRF's own generic machinery is covered by the same rule and a new endpoint cannot forget it.
+
+### Deletes and logout answer 200, not 204
+
+HTTP forbids a body on `204`/`205`, so those four endpoints would have been the one exception to the
+format. They return **200** with the envelope instead:
+
+```json
+{ "success": true, "message": "Role deleted successfully.", "data": {} }
+```
+
+Affects `DELETE /auth/profile/`, `POST /auth/logout/`, `DELETE /roles/{id}/`, `DELETE
+/permissions/{id}/`. Nothing else about them changed.
+
+## Error responses
+
+`message` is a human-readable sentence; `errors` carries the field-scoped detail.
 
 | Situation | Status | `message` | `errors` |
 | --- | --- | --- | --- |

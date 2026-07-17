@@ -24,7 +24,7 @@ def catalogue(db):
 
 
 def codes(response):
-    return [p['code'] for p in response.data['results']]
+    return [p['code'] for p in response.data['data']['results']]
 
 
 # --- filtering ---------------------------------------------------------------
@@ -169,7 +169,7 @@ def test_an_unknown_query_param_is_ignored(admin_client, catalogue):
     response = admin_client.get(URL, {'nonsense': 'x'})
 
     assert response.status_code == 200
-    assert response.data['count'] == Permission.objects.count()
+    assert response.data['data']['count'] == Permission.objects.count()
 
 
 # --- searching ---------------------------------------------------------------
@@ -199,7 +199,7 @@ def test_search_with_no_match_returns_an_empty_page(admin_client, catalogue):
     response = admin_client.get(URL, {'search': 'nothing-matches-this'})
 
     assert response.status_code == 200
-    assert response.data['count'] == 0
+    assert response.data['data']['count'] == 0
 
 
 def test_search_and_filter_combine(admin_client, catalogue):
@@ -229,14 +229,14 @@ def test_ordering_by_name(admin_client, catalogue):
     # lowercase names in would not match Python's case-sensitive sorted().
     response = admin_client.get(URL, {'ordering': 'name', 'namespace': 'user'})
 
-    names = [p['name'] for p in response.data['results']]
+    names = [p['name'] for p in response.data['data']['results']]
     assert names == ['Delete users', 'Update users', 'View users']
 
 
 def test_ordering_by_created_at(admin_client, catalogue):
     response = admin_client.get(URL, {'ordering': 'created_at'})
 
-    stamps = [p['created_at'] for p in response.data['results']]
+    stamps = [p['created_at'] for p in response.data['data']['results']]
     assert stamps == sorted(stamps)
 
 
@@ -260,21 +260,21 @@ def test_ordering_and_filter_combine(admin_client, catalogue):
 def test_list_is_paginated(admin_client, catalogue):
     response = admin_client.get(URL)
 
-    assert set(response.data) >= {'count', 'pages', 'results'}
-    assert response.data['count'] == Permission.objects.count()
+    assert set(response.data['data']) >= {'count', 'pages', 'results'}
+    assert response.data['data']['count'] == Permission.objects.count()
 
 
 def test_page_size_limits_the_results(admin_client, catalogue):
     response = admin_client.get(URL, {'page_size': 2})
 
-    assert len(response.data['results']) == 2
-    assert response.data['count'] == Permission.objects.count()
+    assert len(response.data['data']['results']) == 2
+    assert response.data['data']['count'] == Permission.objects.count()
 
 
 def test_pagination_counts_only_filtered_rows(admin_client, catalogue):
     response = admin_client.get(URL, {'namespace': 'user'})
 
-    assert response.data['count'] == 3
+    assert response.data['data']['count'] == 3
 
 
 # --- query efficiency --------------------------------------------------------

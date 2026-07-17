@@ -104,15 +104,15 @@ def test_admin_can_list(admin_client, permission):
     response = admin_client.get(URL)
 
     assert response.status_code == 200
-    assert 'mock.view' in [p['code'] for p in response.data['results']]
+    assert 'mock.view' in [p['code'] for p in response.data['data']['results']]
 
 
 def test_admin_can_retrieve(admin_client, permission):
     response = admin_client.get(detail(permission))
 
     assert response.status_code == 200
-    assert response.data['code'] == 'mock.view'
-    assert response.data['name'] == 'View mock objects'
+    assert response.data['data']['code'] == 'mock.view'
+    assert response.data['data']['name'] == 'View mock objects'
 
 
 def test_retrieve_unknown_permission_is_404(admin_client):
@@ -125,7 +125,7 @@ def test_payload_exposes_the_roles_holding_the_permission(admin_client, permissi
 
     response = admin_client.get(detail(permission))
 
-    assert response.data['roles'] == ['Manager']
+    assert response.data['data']['roles'] == ['Manager']
 
 
 def test_roles_are_read_only(admin_client, permission):
@@ -135,7 +135,7 @@ def test_roles_are_read_only(admin_client, permission):
 
     assert response.status_code == 200
     # Grants are managed by the assign-permission endpoint.
-    assert response.data['roles'] == []
+    assert response.data['data']['roles'] == []
 
 
 # --- create ------------------------------------------------------------------
@@ -148,7 +148,7 @@ def test_admin_can_create(admin_client):
 
     assert response.status_code == 201, response.data
     assert Permission.objects.filter(code='report.export').exists()
-    assert response.data['roles'] == []
+    assert response.data['data']['roles'] == []
 
 
 def test_create_without_description_is_allowed(admin_client):
@@ -181,15 +181,15 @@ def test_create_lowercases_the_code(admin_client):
     response = admin_client.post(URL, {'code': 'Mock.Edit', 'name': 'Edit'}, format='json')
 
     assert response.status_code == 201, response.data
-    assert response.data['code'] == 'mock.edit'
+    assert response.data['data']['code'] == 'mock.edit'
 
 
 def test_create_strips_surrounding_whitespace(admin_client):
     response = admin_client.post(URL, {'code': '  mock.edit  ', 'name': '  Edit  '}, format='json')
 
     assert response.status_code == 201
-    assert response.data['code'] == 'mock.edit'
-    assert response.data['name'] == 'Edit'
+    assert response.data['data']['code'] == 'mock.edit'
+    assert response.data['data']['name'] == 'Edit'
 
 
 @pytest.mark.parametrize(
@@ -245,7 +245,7 @@ def test_update_may_keep_its_own_code(admin_client, permission):
     )
 
     assert response.status_code == 200, response.data
-    assert response.data['name'] == 'Renamed'
+    assert response.data['data']['name'] == 'Renamed'
 
 
 def test_update_rejects_a_code_taken_by_another_permission(admin_client, permission):
@@ -267,7 +267,7 @@ def test_read_only_fields_cannot_be_written(admin_client, permission):
     )
 
     assert response.status_code == 200
-    assert response.data['id'] == original_id
+    assert response.data['data']['id'] == original_id
 
 
 # --- update ------------------------------------------------------------------
@@ -315,7 +315,7 @@ def test_renaming_a_code_moves_the_grant(admin_client, permission):
 def test_admin_can_delete(admin_client, permission):
     response = admin_client.delete(detail(permission))
 
-    assert response.status_code == 204
+    assert response.status_code == 200
     assert not Permission.objects.filter(pk=permission.pk).exists()
 
 

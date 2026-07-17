@@ -33,8 +33,8 @@ def test_register_hashes_the_password(api, user_data):
 def test_register_never_returns_the_password(api, user_data):
     response = api.post(URL, user_data, format='json')
 
-    assert 'password' not in response.data
-    assert 'confirm_password' not in response.data
+    assert 'password' not in response.data['data']
+    assert 'confirm_password' not in response.data['data']
 
 
 def test_register_rejects_mismatched_confirmation(api, user_data):
@@ -92,4 +92,4 @@ def test_registered_user_can_log_in(api, user_data):
     )
 
     assert response.status_code == 200
-    assert 'access' in response.data
+    assert 'access' in response.data['data']

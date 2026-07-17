@@ -24,28 +24,28 @@ def test_list_is_paginated(admin_client, roles):
     response = admin_client.get(URL)
 
     assert response.status_code == 200
-    assert set(response.data) >= {'count', 'pages', 'results'}
+    assert set(response.data['data']) >= {'count', 'pages', 'results'}
     # The admin fixture's own role exists too.
-    assert response.data['count'] == Role.objects.count()
+    assert response.data['data']['count'] == Role.objects.count()
 
 
 def test_page_size_limits_the_results(admin_client, roles):
     response = admin_client.get(URL, {'page_size': 2})
 
-    assert len(response.data['results']) == 2
-    assert response.data['count'] == Role.objects.count()
+    assert len(response.data['data']['results']) == 2
+    assert response.data['data']['count'] == Role.objects.count()
 
 
 def test_pages_reports_the_page_count(admin_client, roles):
     response = admin_client.get(URL, {'page_size': 2})
 
     total = Role.objects.count()
-    assert response.data['pages'] == -(-total // 2)  # ceil
+    assert response.data['data']['pages'] == -(-total // 2)  # ceil
 
 
 def test_second_page_returns_different_rows(admin_client, roles):
-    first = admin_client.get(URL, {'page_size': 2, 'page': 1}).data['results']
-    second = admin_client.get(URL, {'page_size': 2, 'page': 2}).data['results']
+    first = admin_client.get(URL, {'page_size': 2, 'page': 1}).data['data']['results']
+    second = admin_client.get(URL, {'page_size': 2, 'page': 2}).data['data']['results']
 
     assert {r['id'] for r in first}.isdisjoint({r['id'] for r in second})
 
@@ -60,46 +60,47 @@ def test_paging_past_the_end_is_404(admin_client, roles):
 def test_search_matches_the_name(admin_client, roles):
     response = admin_client.get(URL, {'search': 'Manager'})
 
-    assert [r['name'] for r in response.data['results']] == ['Manager']
+    assert [r['name'] for r in response.data['data']['results']] == ['Manager']
 
 
 def test_search_matches_the_description(admin_client, roles):
     response = admin_client.get(URL, {'search': 'Does the work'})
 
-    assert [r['name'] for r in response.data['results']] == ['Employee']
+    assert [r['name'] for r in response.data['data']['results']] == ['Employee']
 
 
 def test_search_is_case_insensitive(admin_client, roles):
     response = admin_client.get(URL, {'search': 'mAnAgEr'})
 
-    assert [r['name'] for r in response.data['results']] == ['Manager']
+    assert [r['name'] for r in response.data['data']['results']] == ['Manager']
 
 
 def test_search_matches_a_partial_term(admin_client, roles):
     response = admin_client.get(URL, {'search': 'Runs'})
 
-    assert {r['name'] for r in response.data['results']} == {'Admin', 'Manager'}
+    assert {r['name'] for r in response.data['data']['results']} == {'Admin', 'Manager'}
 
 
 def test_search_with_no_match_returns_an_empty_page(admin_client, roles):
     response = admin_client.get(URL, {'search': 'nothing-matches-this'})
 
     assert response.status_code == 200
-    assert response.data['count'] == 0
-    assert response.data['results'] == []
+    assert response.data['data']['count'] == 0
+    assert response.data['data']['results'] == []
 
 
 # --- ordering ----------------------------------------------------------------
 
 
 def test_default_ordering_is_by_name(admin_client, roles):
-    names = [r['name'] for r in admin_client.get(URL).data['results']]
+    names = [r['name'] for r in admin_client.get(URL).data['data']['results']]
 
     assert names == sorted(names)
 
 
 def test_ordering_by_name_descending(admin_client, roles):
-    names = [r['name'] for r in admin_client.get(URL, {'ordering': '-name'}).data['results']]
+    response = admin_client.get(URL, {'ordering': '-name'})
+    names = [r['name'] for r in response.data['data']['results']]
 
     assert names == sorted(names, reverse=True)
 
@@ -107,14 +108,14 @@ def test_ordering_by_name_descending(admin_client, roles):
 def test_ordering_by_created_at(admin_client, roles):
     response = admin_client.get(URL, {'ordering': 'created_at'})
 
-    stamps = [r['created_at'] for r in response.data['results']]
+    stamps = [r['created_at'] for r in response.data['data']['results']]
     assert stamps == sorted(stamps)
 
 
 def test_ordering_by_created_at_descending(admin_client, roles):
     response = admin_client.get(URL, {'ordering': '-created_at'})
 
-    stamps = [r['created_at'] for r in response.data['results']]
+    stamps = [r['created_at'] for r in response.data['data']['results']]
     assert stamps == sorted(stamps, reverse=True)
 
 
@@ -128,7 +129,7 @@ def test_ordering_by_an_undeclared_field_is_ignored(admin_client, roles):
 def test_search_and_ordering_combine(admin_client, roles):
     response = admin_client.get(URL, {'search': 'Runs', 'ordering': '-name'})
 
-    assert [r['name'] for r in response.data['results']] == ['Manager', 'Admin']
+    assert [r['name'] for r in response.data['data']['results']] == ['Manager', 'Admin']
 
 
 # --- query efficiency --------------------------------------------------------

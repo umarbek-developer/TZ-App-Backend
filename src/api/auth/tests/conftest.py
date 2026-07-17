@@ -55,7 +55,8 @@ def tokens(api, user):
         format='json',
     )
     assert response.status_code == 200, response.data
-    return response.data
+    # The body is enveloped; the token pair lives under `data`.
+    return response.data['data']
 
 
 @pytest.fixture

@@ -17,15 +17,15 @@ def test_get_profile_returns_current_user(auth_client, user):
     response = auth_client.get(URL)
 
     assert response.status_code == 200, response.data
-    assert response.data['email'] == user.email
-    assert response.data['first_name'] == 'John'
-    assert response.data['middle_name'] == 'Smith'
+    assert response.data['data']['email'] == user.email
+    assert response.data['data']['first_name'] == 'John'
+    assert response.data['data']['middle_name'] == 'Smith'
 
 
 def test_get_profile_never_exposes_the_password(auth_client):
     response = auth_client.get(URL)
 
-    assert 'password' not in response.data
+    assert 'password' not in response.data['data']
 
 
 def test_get_profile_without_token_is_401(api):
@@ -49,7 +49,7 @@ def test_patch_updates_profile_fields(auth_client, user):
     response = auth_client.patch(URL, {'first_name': 'Jane'}, format='json')
 
     assert response.status_code == 200, response.data
-    assert response.data['first_name'] == 'Jane'
+    assert response.data['data']['first_name'] == 'Jane'
     user.refresh_from_db()
     assert user.first_name == 'Jane'
 
@@ -103,7 +103,7 @@ def test_patch_without_token_is_401(api):
 def test_delete_soft_deletes_the_user(auth_client, user):
     response = auth_client.delete(URL)
 
-    assert response.status_code == 204
+    assert response.status_code == 200
     user.refresh_from_db()
     assert user.is_active is False
     # Soft delete: the row must survive.

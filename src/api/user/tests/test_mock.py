@@ -74,26 +74,26 @@ def test_employee_gets_200(employee_client, url):
 def test_projects_payload_matches_the_specification(employee_client):
     response = employee_client.get(PROJECTS_URL)
 
-    assert response.data == [{'id': 1, 'name': 'CRM'}, {'id': 2, 'name': 'ERP'}]
+    assert response.data['data'] == [{'id': 1, 'name': 'CRM'}, {'id': 2, 'name': 'ERP'}]
 
 
 def test_orders_payload_matches_the_specification(employee_client):
     response = employee_client.get(ORDERS_URL)
 
-    assert response.data == [{'id': 100, 'price': 500}]
+    assert response.data['data'] == [{'id': 100, 'price': 500}]
 
 
 def test_employees_payload(employee_client):
     response = employee_client.get(EMPLOYEES_URL)
 
-    assert response.data == EMPLOYEES
+    assert response.data['data'] == EMPLOYEES
     assert len(response.data) == 3
 
 
 def test_documents_payload(employee_client):
     response = employee_client.get(DOCUMENTS_URL)
 
-    assert response.data == DOCUMENTS
+    assert response.data['data'] == DOCUMENTS
     assert len(response.data) == 3
 
 
@@ -108,21 +108,21 @@ def test_documents_payload(employee_client):
 )
 def test_items_match_their_documented_shape(employee_client, url, keys):
     """Guards the payloads against drifting from the serializers Swagger publishes."""
-    for item in employee_client.get(url).data:
+    for item in employee_client.get(url).data['data']:
         assert set(item) == keys
 
 
 @pytest.mark.parametrize('url', ALL_URLS)
 def test_response_is_a_bare_array_not_a_paginated_envelope(employee_client, url):
     """The spec shows a plain array; the project-wide pagination must not wrap it."""
-    data = employee_client.get(url).data
+    data = employee_client.get(url).data['data']
 
     assert isinstance(data, list)
 
 
 @pytest.mark.parametrize('url', ALL_URLS)
 def test_every_item_has_a_unique_id(employee_client, url):
-    ids = [item['id'] for item in employee_client.get(url).data]
+    ids = [item['id'] for item in employee_client.get(url).data['data']]
 
     assert len(ids) == len(set(ids))
 
@@ -150,10 +150,10 @@ def test_the_mock_endpoints_have_no_models():
 @pytest.mark.parametrize('url', ALL_URLS)
 def test_payload_is_not_mutated_between_requests(employee_client, url):
     """The views hand out a module-level list; a caller must not be able to alter it."""
-    first = employee_client.get(url).data
+    first = employee_client.get(url).data['data']
     first.append({'id': 999})
 
-    second = employee_client.get(url).data
+    second = employee_client.get(url).data['data']
 
     assert not any(item.get('id') == 999 for item in second)
 

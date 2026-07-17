@@ -137,10 +137,12 @@ class AssignRoleView(APIView):
         )
         clear_permission_cache(user)
 
-        return Response(
+        response = Response(
             _payload(user, added=_names(added), already_assigned=_names(already)),
             status=status.HTTP_200_OK,
         )
+        response.success_message = 'Roles assigned successfully.'
+        return response
 
     @transaction.atomic
     def put(self, request):
@@ -161,7 +163,7 @@ class AssignRoleView(APIView):
         )
         clear_permission_cache(user)
 
-        return Response(
+        response = Response(
             _payload(
                 user,
                 added=_names(added),
@@ -170,6 +172,8 @@ class AssignRoleView(APIView):
             ),
             status=status.HTTP_200_OK,
         )
+        response.success_message = 'User roles replaced successfully.'
+        return response
 
     @transaction.atomic
     def delete(self, request):
@@ -182,7 +186,9 @@ class AssignRoleView(APIView):
         UserRole.objects.filter(user=user, role_id__in=[role.pk for role in removed]).delete()
         clear_permission_cache(user)
 
-        return Response(
+        response = Response(
             _payload(user, removed=_names(removed), not_assigned=_names(not_assigned)),
             status=status.HTTP_200_OK,
         )
+        response.success_message = 'Roles removed successfully.'
+        return response

@@ -1,8 +1,10 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
-from rest_framework import filters
+from rest_framework import filters, status
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from api.renderers import EnvelopeMessageMixin
 from api.user.filters import PermissionFilter
 from api.user.serializers.permission_serializers import PermissionSerializer
 from apps.rbac.models import Permission
@@ -90,16 +92,24 @@ _FILTER_HELP = (
             'Any endpoint gated on the deleted code then denies everyone.'
         ),
         responses={
-            204: OpenApiResponse(description='Deleted.'),
+            200: OpenApiResponse(description='Deleted.'),
             401: _UNAUTHORIZED,
             403: _FORBIDDEN,
         },
     ),
 )
-class PermissionViewSet(ModelViewSet):
+class PermissionViewSet(EnvelopeMessageMixin, ModelViewSet):
     """CRUD over the permission catalogue, gated by the RBAC permission codes."""
 
     serializer_class = PermissionSerializer
+    success_messages = {
+        'list': 'Permissions retrieved successfully.',
+        'retrieve': 'Permission retrieved successfully.',
+        'create': 'Permission created successfully.',
+        'update': 'Permission updated successfully.',
+        'partial_update': 'Permission updated successfully.',
+        'destroy': 'Permission deleted successfully.',
+    }
     # prefetch_related: the serializer renders each permission's role names, which
     # would otherwise be one query per row on the list endpoint.
     queryset = Permission.objects.prefetch_related('roles').all()
@@ -116,3 +126,9 @@ class PermissionViewSet(ModelViewSet):
         if self.action in ('list', 'retrieve'):
             return [CanViewPermissions()]
         return [CanManagePermissions()]
+
+    def destroy(self, request, *args, **kwargs):
+        # DRF's destroy returns 204, which cannot carry a body. Every response in
+        # this API carries the envelope, so the delete answers 200 instead.
+        super().destroy(request, *args, **kwargs)
+        return Response(status=status.HTTP_200_OK)

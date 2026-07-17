@@ -99,7 +99,7 @@ def test_assign_response_shape(admin_client, target, roles):
         URL, body(target, roles['Manager'], roles['Guest']), format='json'
     )
 
-    assert response.data == {
+    assert response.data['data'] == {
         'user': {
             'id': str(target.pk),
             'email': 'target@test.com',
@@ -118,8 +118,8 @@ def test_assigning_an_already_held_role_is_a_noop(admin_client, target, roles):
     response = admin_client.post(URL, body(target, roles['Manager']), format='json')
 
     assert response.status_code == 200
-    assert response.data['added'] == []
-    assert response.data['already_assigned'] == ['Manager']
+    assert response.data['data']['added'] == []
+    assert response.data['data']['already_assigned'] == ['Manager']
     # No duplicate row.
     assert UserRole.objects.filter(user=target, role=roles['Manager']).count() == 1
 
@@ -227,7 +227,7 @@ def test_inactive_user_can_still_be_assigned(admin_client, roles):
     response = admin_client.post(URL, body(inactive, roles['Manager']), format='json')
 
     assert response.status_code == 200
-    assert response.data['user']['is_active'] is False
+    assert response.data['data']['user']['is_active'] is False
     assert held(inactive) == ['Manager']
 
 
@@ -251,10 +251,10 @@ def test_replace_response_shape(admin_client, target, roles):
         URL, body(target, roles['Manager'], roles['Employee']), format='json'
     )
 
-    assert response.data['roles'] == ['Employee', 'Manager']
-    assert response.data['added'] == ['Manager']
-    assert response.data['removed'] == ['Guest']
-    assert response.data['unchanged'] == ['Employee']
+    assert response.data['data']['roles'] == ['Employee', 'Manager']
+    assert response.data['data']['added'] == ['Manager']
+    assert response.data['data']['removed'] == ['Guest']
+    assert response.data['data']['unchanged'] == ['Employee']
 
 
 def test_replace_with_an_empty_list_strips_every_role(admin_client, target, roles):
@@ -265,7 +265,7 @@ def test_replace_with_an_empty_list_strips_every_role(admin_client, target, role
 
     assert response.status_code == 200
     assert held(target) == []
-    assert response.data['removed'] == ['Guest', 'Manager']
+    assert response.data['data']['removed'] == ['Guest', 'Manager']
 
 
 def test_replace_is_idempotent(admin_client, target, roles):
@@ -273,8 +273,8 @@ def test_replace_is_idempotent(admin_client, target, roles):
         response = admin_client.put(URL, body(target, roles['Manager']), format='json')
 
     assert UserRole.objects.filter(user=target).count() == 1
-    assert response.data['added'] == []
-    assert response.data['unchanged'] == ['Manager']
+    assert response.data['data']['added'] == []
+    assert response.data['data']['unchanged'] == ['Manager']
 
 
 def test_replace_revokes_the_old_roles_permissions(admin_client, target):
@@ -329,17 +329,17 @@ def test_remove_response_shape(admin_client, target, roles):
         URL, body(target, roles['Manager'], roles['Guest']), format='json'
     )
 
-    assert response.data['roles'] == []
-    assert response.data['removed'] == ['Manager']
-    assert response.data['not_assigned'] == ['Guest']
+    assert response.data['data']['roles'] == []
+    assert response.data['data']['removed'] == ['Manager']
+    assert response.data['data']['not_assigned'] == ['Guest']
 
 
 def test_removing_a_role_the_user_lacks_is_a_noop(admin_client, target, roles):
     response = admin_client.delete(URL, body(target, roles['Manager']), format='json')
 
     assert response.status_code == 200
-    assert response.data['removed'] == []
-    assert response.data['not_assigned'] == ['Manager']
+    assert response.data['data']['removed'] == []
+    assert response.data['data']['not_assigned'] == ['Manager']
 
 
 def test_remove_is_idempotent(admin_client, target, roles):

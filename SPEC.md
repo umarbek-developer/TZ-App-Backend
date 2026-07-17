@@ -355,6 +355,41 @@ are module constants. All four gated on `mock.view`, held by Admin, Manager and 
 
 ---
 
+## 9c. Response envelope — DONE (commit: uniform response format)
+
+Not in the assignment; requested separately. Every endpoint, success and failure alike, returns one
+of two shapes.
+
+- [x] **V1** — Success: `{"success": true, "message": "...", "data": {}}`.
+- [x] **V2** — Failure: `{"success": false, "message": "...", "errors": {}}` (unchanged, §9b).
+- [x] **V3** — Applied by `api/renderers.py::EnvelopeJSONRenderer`, wired as
+      `DEFAULT_RENDERER_CLASSES`. Chosen over a per-view base class deliberately: `ModelViewSet`
+      builds its own Responses, so only a renderer covers `list`/`create`/`destroy` without
+      overriding each, and a new endpoint cannot forget to opt in.
+- [x] **V4** — The renderer also writes back `response.data`, so `.data` and the wire agree.
+      Without it `.data` would hold the bare payload while clients received the envelope — two
+      answers to "what did this endpoint return", with every test asserting the one nobody gets.
+- [x] **V5** — Messages: per-endpoint (`response.success_message`) or per-action for viewsets
+      (`EnvelopeMessageMixin.success_messages`), falling back to a generic sentence by method+status.
+- [x] **V6** — Pagination nests **inside** `data` (owner's choice): `data = {count, pages, results}`.
+- [x] **V7** — ⚠️ **204/205 → 200.** HTTP forbids a body on those, so they could not carry the
+      envelope. Owner's choice: `DELETE /auth/profile/`, `POST /auth/logout/`, `DELETE /roles/{id}/`
+      and `DELETE /permissions/{id}/` now answer **200**. This is the one place the refactor changes
+      an endpoint's contract; behaviour is otherwise untouched.
+- [x] **V8** — ⚠️ The mock endpoints no longer return a bare array — it moves under `data`. That
+      diverges from the assignment's literal mock example, which shows `[{...}]`. Superseded by
+      "every response should follow one format".
+- [x] **V9** — No double-wrapping: errors already enveloped by the exception handler pass through.
+- [x] **V10** — The OpenAPI schema endpoint is **not** enveloped (it pins its own renderers);
+      asserted by `test_the_openapi_schema_endpoint_is_not_enveloped`, since wrapping it would break
+      Swagger UI.
+- [x] **V11** — Swagger updated by `api/schema.py::envelope_responses`, a spectacular postprocessing
+      hook. Views keep declaring their payload; the hook rewrites each documented body into the
+      envelope, so docs and renderer cannot drift. Verified: **0 of ~60 documented responses
+      non-conforming**.
+- [x] **V12** — 26 tests in `src/api/tests/test_response_envelope.py` assert the wire format via
+      `response.json()`; ~100 existing assertions moved to `response.data['data']`.
+
 ## 9b. Error handling — DONE (commit: exception handler)
 
 Not in the assignment; requested separately. `src/api/exceptions.py`, wired via

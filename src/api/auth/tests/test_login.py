@@ -11,9 +11,9 @@ def test_login_returns_token_pair(api, user):
     response = api.post(URL, {'email': user.email, 'password': PASSWORD}, format='json')
 
     assert response.status_code == 200, response.data
-    assert set(response.data) == {'refresh', 'access'}
-    assert response.data['access']
-    assert response.data['refresh']
+    assert set(response.data['data']) == {'refresh', 'access'}
+    assert response.data['data']['access']
+    assert response.data['data']['refresh']
 
 
 def test_login_is_case_insensitive_on_email(api, user):
@@ -48,10 +48,10 @@ def test_login_requires_both_fields(api, db):
 
 
 def test_access_token_authenticates_a_request(api, user):
-    tokens = api.post(URL, {'email': user.email, 'password': PASSWORD}, format='json').data
+    tokens = api.post(URL, {'email': user.email, 'password': PASSWORD}, format='json').data['data']
 
     api.credentials(HTTP_AUTHORIZATION=f'Bearer {tokens["access"]}')
     response = api.get('/api/v1/auth/profile/')
 
     assert response.status_code == 200
-    assert response.data['email'] == user.email
+    assert response.data['data']['email'] == user.email

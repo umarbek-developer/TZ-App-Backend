@@ -41,7 +41,7 @@ from api.auth.serializers.user_serializers import ProfileSerializer
             '(CHECK_USER_IS_ACTIVE). The account can no longer log in.'
         ),
         responses={
-            204: OpenApiResponse(description='Account deactivated and tokens revoked.'),
+            200: OpenApiResponse(description='Account deactivated and tokens revoked.'),
             401: OpenApiResponse(description='Authentication credentials were not provided.'),
         },
     ),
@@ -50,13 +50,17 @@ class ProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response(ProfileSerializer(request.user).data, status=status.HTTP_200_OK)
+        response = Response(ProfileSerializer(request.user).data, status=status.HTTP_200_OK)
+        response.success_message = 'Profile retrieved successfully.'
+        return response
 
     def patch(self, request):
         serializer = ProfileSerializer(request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        response = Response(serializer.data, status=status.HTTP_200_OK)
+        response.success_message = 'Profile updated successfully.'
+        return response
 
     def delete(self, request):
         user = request.user
@@ -70,4 +74,8 @@ class ProfileView(APIView):
         for token in OutstandingToken.objects.filter(user=user):
             BlacklistedToken.objects.get_or_create(token=token)
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        # 200 rather than 204: every response carries the envelope, and HTTP
+        # forbids a body on 204.
+        response = Response(status=status.HTTP_200_OK)
+        response.success_message = 'Account deleted successfully.'
+        return response

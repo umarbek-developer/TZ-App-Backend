@@ -17,7 +17,8 @@ from apps.users.models import User
 
 factory = APIRequestFactory()
 
-ENVELOPE_KEYS = {'success', 'message', 'errors'}
+ERROR_KEYS = {'success', 'message', 'errors'}
+SUCCESS_KEYS = {'success', 'message', 'data'}
 
 
 # --- throwaway views, one per failure mode -----------------------------------
@@ -87,7 +88,13 @@ def call(view, method='get', data=None, user=None):
     request = getattr(factory, method)('/', data, format='json')
     if user is not None:
         force_authenticate(request, user=user)
-    return view.as_view()(request)
+    response = view.as_view()(request)
+    # APIRequestFactory hands back an unrendered response. The success envelope is
+    # applied by the renderer, so without this the assertions would inspect the bare
+    # payload — something no client ever receives. (Errors need no render: the
+    # exception handler writes response.data itself.)
+    response.render()
+    return response
 
 
 # --- the envelope ------------------------------------------------------------
@@ -108,19 +115,22 @@ def test_every_error_uses_the_same_envelope(exception, expected_status):
     response = call(raising(exception))
 
     assert response.status_code == expected_status
-    assert set(response.data) == ENVELOPE_KEYS
+    assert set(response.data) == ERROR_KEYS
     assert response.data['success'] is False
     assert isinstance(response.data['message'], str)
     assert response.data['message']
     assert isinstance(response.data['errors'], dict)
 
 
-def test_success_responses_are_untouched():
-    """The handler must only shape errors — a 200 keeps its own body."""
+def test_success_responses_get_the_success_envelope():
+    """Errors and successes are shaped by different machinery — the exception
+    handler for one, the renderer for the other — but both come out enveloped."""
     response = call(SerializerView, 'post', {'email': 'a@b.com', 'age': 1})
 
     assert response.status_code == 200
-    assert response.data == {'ok': True}
+    assert set(response.data) == SUCCESS_KEYS
+    assert response.data['success'] is True
+    assert response.data['data'] == {'ok': True}
 
 
 # --- ValidationError ---------------------------------------------------------
@@ -163,7 +173,7 @@ def test_validation_errors_are_json_serialisable():
     response = call(SerializerView, 'post', {'email': 'nope', 'age': 'x'})
     response.render()
 
-    assert set(json.loads(response.content)) == ENVELOPE_KEYS
+    assert set(json.loads(response.content)) == ERROR_KEYS
 
 
 # --- authentication / permissions --------------------------------------------
@@ -247,7 +257,7 @@ def test_an_unhandled_exception_becomes_a_json_500():
     response = call(BoomView)
 
     assert response.status_code == 500
-    assert set(response.data) == ENVELOPE_KEYS
+    assert set(response.data) == ERROR_KEYS
     assert response.data['success'] is False
 
 
@@ -284,5 +294,5 @@ def test_method_not_allowed_uses_the_envelope():
     response = call(SerializerView, 'get')
 
     assert response.status_code == 405
-    assert set(response.data) == ENVELOPE_KEYS
+    assert set(response.data) == ERROR_KEYS
     assert response.data['success'] is False

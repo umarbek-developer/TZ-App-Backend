@@ -1,7 +1,9 @@
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
-from rest_framework import filters
+from rest_framework import filters, status
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
 
+from api.renderers import EnvelopeMessageMixin
 from api.user.serializers.role_serializers import RoleSerializer
 from apps.rbac.models import Role
 from apps.rbac.permissions import require_permissions
@@ -70,14 +72,22 @@ _FORBIDDEN = OpenApiResponse(description='Authenticated, but the required permis
             'permission grants and revokes it from every user who held it; the users '
             'and permissions themselves are untouched.'
         ),
-        responses={204: OpenApiResponse(description='Deleted.'), 401: _UNAUTHORIZED,
+        responses={200: OpenApiResponse(description='Deleted.'), 401: _UNAUTHORIZED,
                    403: _FORBIDDEN},
     ),
 )
-class RoleViewSet(ModelViewSet):
+class RoleViewSet(EnvelopeMessageMixin, ModelViewSet):
     """CRUD over roles, gated by the RBAC permission codes."""
 
     serializer_class = RoleSerializer
+    success_messages = {
+        'list': 'Roles retrieved successfully.',
+        'retrieve': 'Role retrieved successfully.',
+        'create': 'Role created successfully.',
+        'update': 'Role updated successfully.',
+        'partial_update': 'Role updated successfully.',
+        'destroy': 'Role deleted successfully.',
+    }
     # prefetch_related: the serializer renders each role's permission codes, which
     # would otherwise be one query per row on the list endpoint.
     queryset = Role.objects.prefetch_related('permissions').all()
@@ -95,3 +105,9 @@ class RoleViewSet(ModelViewSet):
         if self.action in ('list', 'retrieve'):
             return [CanViewRoles()]
         return [CanManageRoles()]
+
+    def destroy(self, request, *args, **kwargs):
+        # DRF's destroy returns 204, which cannot carry a body. Every response in
+        # this API carries the envelope, so the delete answers 200 instead.
+        super().destroy(request, *args, **kwargs)
+        return Response(status=status.HTTP_200_OK)
