@@ -378,7 +378,8 @@ are module constants. All four gated on `mock.view`, held by Admin, Manager and 
 - **Q15** — ✅ **Answered: regenerated.** `postman-workflows.json` and `postman-variables.json` were
   rewritten against the live API: 6 folders, 50 requests, 107 assertions, verified green twice in a
   row with `npx newman run`. Tokens and ids are captured by test scripts, so nothing is pasted by
-  hand. ⚠️ `postman-workflows-usage.gif` still shows the old OTP flow.
+  hand. The stale `postman-workflows-usage.gif` (a
+  recording of the deleted OTP flow) was deleted.
 - **Q16** — **Four dead template models remain** in `apps/users`: `UserOTPVerifications`,
   `UserOTPIDVerifications`, `ChangePasswordLogs`, `ChangeEmailLogs`. Provably unused, but they own
   real tables (migrations `0002`–`0015`) and appear in the Django admin. Dropping them is a

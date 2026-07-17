@@ -198,8 +198,6 @@ folders are ordered to run top-to-bottom in the Collection Runner; each captures
 needs. Verified with `npx newman run src/postman-workflows.json -e src/postman-variables.json`
 (50 requests, 107 assertions, green, and re-runnable).
 
-⚠️ `src/postman-workflows-usage.gif` predates the rewrite — it walks through the template's old OTP
-flow, which no longer exists.
 
 Production is served by gunicorn via `deployment/gunicorn.service` + `gunicorn.socket` behind
 `deployment/nginx.conf`.
