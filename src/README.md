@@ -1,84 +1,134 @@
 # TZ-App-Backend
 
-A Django REST API with JWT authentication and role-based access control (RBAC).
+REST API на Django REST Framework с JWT-аутентификацией и системой разграничения прав доступа
+(RBAC) на основе ролей.
 
-Seeded administrator — created by `python manage.py seed_data` (see below):
+Учётная запись администратора — создаётся командой `python manage.py seed_data` (см. ниже):
 
 ```
 Email:    admin@gmail.com
-Password: admin123
+Пароль:   admin123
 ```
 
-## Running locally
+---
 
-PostgreSQL is required — there is no SQLite fallback, and the project refuses to start without it.
+## 1. Установка и запуск
+
+Требуется **PostgreSQL**. Резервного варианта на SQLite нет: при неверной настройке проект
+намеренно не запустится, а не начнёт молча работать с другой базой.
+
+### Что нужно заранее
+
+| | Версия |
+| --- | --- |
+| Python | 3.12 |
+| PostgreSQL | 16 (проверено на 16.14) |
+
+### Шаг 1. Виртуальное окружение
+
+```bash
+python3 -m venv venv
+source venv/bin/activate          # Windows: venv\Scripts\activate
+```
+
+### Шаг 2. Настройки окружения
+
+Файл `.env` в репозитории отсутствует (он в `.gitignore`), поэтому его нужно создать из шаблона:
 
 ```bash
 cd src
-
-# 1. Environment. .env is gitignored, so a fresh clone must create it.
 cp .env.example .env
-#    Then edit .env:
-#      - generate SECRET_KEY:
-#        python -c "from django.core.management.utils import get_random_secret_key as k; print(k())"
-#      - set DB_NAME / DB_USER for your PostgreSQL
-#      - leave DB_HOST empty to use the local Unix socket (peer auth, no password)
+```
 
-# 2. Dependencies
+Затем откройте `.env` и заполните два значения:
+
+```bash
+# 1. Сгенерируйте SECRET_KEY и вставьте его в .env:
+python -c "from django.core.management.utils import get_random_secret_key as k; print(k())"
+
+# 2. Укажите DB_NAME и DB_USER вашей PostgreSQL.
+```
+
+Полный список переменных `.env` — их всего 11, и все они действительно читаются настройками:
+
+| Переменная | Назначение |
+| --- | --- |
+| `DEBUG` | `1` — режим разработки, `0` — production. Других значений быть не должно |
+| `SECRET_KEY` | Подписывает JWT. Должен быть длинным и случайным |
+| `ALLOWED_HOSTS` | Читается только при `DEBUG=0` |
+| `CORS_ALLOWED_ORIGINS` | Читается только при `DEBUG=0` |
+| `CSRF_TRUSTED_ORIGINS` | Читается только при `DEBUG=0` |
+| `DB_TYPE` | Должен быть `psql`, иначе `ImproperlyConfigured` при старте |
+| `DB_NAME` | Имя базы, например `tz_app` |
+| `DB_USER` | Пользователь PostgreSQL |
+| `DB_PASSWORD` | Пусто при подключении через Unix-сокет |
+| `DB_HOST` | **Оставьте пустым** — тогда используется локальный Unix-сокет (peer-аутентификация, без пароля). Если указать хост, потребуется `DB_PASSWORD` |
+| `DB_PORT` | `5432` |
+
+### Шаг 3. Зависимости
+
+```bash
 pip install -r requirements/dev.txt
+```
 
-# 3. Database
+`requirements/` устроены цепочкой: `dev.txt` и `production.txt` подключают `common.txt` через `-r`.
+Библиотека времени выполнения → `common.txt`; инструменты разработки (pytest, ruff) → `dev.txt`.
+
+### Шаг 4. База данных
+
+```bash
 createdb tz_app
 python manage.py migrate
+```
 
-# 4. RBAC seed data (see below)
+### Шаг 5. Тестовые данные
+
+```bash
 python manage.py seed_data
+```
 
-# 5. Run
+Создаёт роли, права, связи между ними и администратора. Команда **идемпотентна** — её можно
+запускать сколько угодно раз (подробности в разделе «Команда seed_data»).
+
+### Шаг 6. Запуск
+
+```bash
 python manage.py runserver
 ```
 
-The API is served at `http://127.0.0.1:8000/api/v1/`.
+API доступен по адресу `http://127.0.0.1:8000/api/v1/`.
 
-## API documentation
+> Все команды выполняются из каталога `src/` — там лежит `manage.py`. Флаг настроек указывать не
+> нужно: `manage.py` сам выставляет `DJANGO_SETTINGS_MODULE=config.settings`, а значение `DEBUG`
+> в `.env` выбирает ветку development/production.
 
-Generated from the code by drf-spectacular:
+---
 
-| URL | What |
+## 2. Список URL-адресов
+
+### Документация
+
+| URL | Что это |
 | --- | --- |
-| `/api/v1/docs/` | Swagger UI (interactive) |
-| `/api/v1/redoc/` | ReDoc |
-| `/api/v1/schema/` | Raw OpenAPI schema |
+| `/api/v1/docs/` | **Swagger UI** — интерактивная документация, можно выполнять запросы прямо из браузера |
+| `/api/v1/redoc/` | ReDoc — та же схема, другой вид |
+| `/api/v1/schema/` | Схема OpenAPI в исходном виде (YAML) |
+| `/admin/` | Стандартная админка Django (роли, права, пользователи) |
 
-## Authentication
+### Аутентификация и профиль
 
-JWT, via `djangorestframework-simplejwt`. Register, then log in to receive a token pair; send the
-access token on every subsequent request:
-
-```
-Authorization: Bearer <access token>
-```
-
-| Method | Endpoint | Auth | Result |
+| Метод | URL | Доступ | Результат |
 | --- | --- | --- | --- |
-| POST | `/api/v1/auth/register/` | — | 201, creates an active user |
+| POST | `/api/v1/auth/register/` | — | 201, создаёт активного пользователя |
 | POST | `/api/v1/auth/login/` | — | 200, `data` = `{refresh, access}` |
-| POST | `/api/v1/auth/logout/` | ✅ | 200, blacklists the refresh token |
-| GET | `/api/v1/auth/profile/` | ✅ | 200, the current user |
-| PATCH | `/api/v1/auth/profile/` | ✅ | 200, updates the current user |
-| DELETE | `/api/v1/auth/profile/` | ✅ | 200, soft delete |
+| POST | `/api/v1/auth/logout/` | ✅ токен | 200, refresh-токен в чёрном списке |
+| GET | `/api/v1/auth/profile/` | ✅ токен | 200, текущий пользователь |
+| PATCH | `/api/v1/auth/profile/` | ✅ токен | 200, обновление профиля |
+| DELETE | `/api/v1/auth/profile/` | ✅ токен | 200, мягкое удаление |
 
-**Logout** blacklists the refresh token so it can no longer mint access tokens. The access token
-itself stays valid until it expires — inherent to stateless JWT.
+### Роли
 
-**Delete profile** is a soft delete: `is_active` becomes `False` and the row survives. Every
-outstanding refresh token for the account is blacklisted, and the current access token stops working
-immediately because SimpleJWT rejects tokens belonging to inactive users. The account cannot log in
-again.
-
-## Roles
-
-| Method | Endpoint | Permission |
+| Метод | URL | Требуемое право |
 | --- | --- | --- |
 | GET | `/api/v1/roles/` | `role.view` |
 | GET | `/api/v1/roles/{id}/` | `role.view` |
@@ -87,27 +137,9 @@ again.
 | PATCH | `/api/v1/roles/{id}/` | `role.manage` |
 | DELETE | `/api/v1/roles/{id}/` | `role.manage` |
 
-Only the seeded **Admin** role carries `role.view`/`role.manage`, so these endpoints are
-administrator-only in practice — but that follows from the RBAC tables rather than a hardcoded check,
-so granting `role.view` to another role is all it takes to open up reads.
+### Права
 
-```bash
-GET /api/v1/roles/?page=2&page_size=5          # pagination
-GET /api/v1/roles/?search=manager              # searches name and description
-GET /api/v1/roles/?ordering=-created_at        # name | created_at | updated_at, - to reverse
-```
-
-`name` is required, trimmed, at most 100 characters, and unique **case-insensitively** — `admin` is
-rejected while `Admin` exists. A role's `permissions` are shown read-only; they are changed through
-the assign-permission endpoint.
-
-Deleting a role also deletes its permission grants and revokes it from everyone who held it (the
-users and permissions themselves survive). Deleting the **Admin** role would strip the administrator
-of every permission and lock the API — `python manage.py seed_data` restores it.
-
-## Permissions
-
-| Method | Endpoint | Permission |
+| Метод | URL | Требуемое право |
 | --- | --- | --- |
 | GET | `/api/v1/permissions/` | `permission.view` |
 | GET | `/api/v1/permissions/{id}/` | `permission.view` |
@@ -116,135 +148,291 @@ of every permission and lock the API — `python manage.py seed_data` restores i
 | PATCH | `/api/v1/permissions/{id}/` | `permission.manage` |
 | DELETE | `/api/v1/permissions/{id}/` | `permission.manage` |
 
-As with roles, only the seeded **Admin** role carries these codes, so the catalogue is
-administrator-only in practice without that being hardcoded.
+### Назначение прав
 
-**Filtering** is precise, unlike `?search=` which loosely matches code, name and description:
+| Метод | URL | Требуемое право | Действие |
+| --- | --- | --- | --- |
+| POST | `/api/v1/assign-role/` | `role.manage` | **Добавить** роли пользователю |
+| PUT | `/api/v1/assign-role/` | `role.manage` | **Заменить** роли пользователя |
+| DELETE | `/api/v1/assign-role/` | `role.manage` | **Убрать** роли у пользователя |
+| POST | `/api/v1/assign-permission/` | `permission.manage` | **Добавить** права роли |
+| PUT | `/api/v1/assign-permission/` | `permission.manage` | **Заменить** права роли |
+| DELETE | `/api/v1/assign-permission/` | `permission.manage` | **Убрать** права у роли |
+
+### Mock-объекты бизнес-приложения
+
+| Метод | URL | Требуемое право |
+| --- | --- | --- |
+| GET | `/api/v1/mock/projects/` | `mock.view` |
+| GET | `/api/v1/mock/orders/` | `mock.view` |
+| GET | `/api/v1/mock/employees/` | `mock.view` |
+| GET | `/api/v1/mock/documents/` | `mock.view` |
+
+---
+
+## 3. Схема разграничения прав доступа (RBAC)
+
+Доступ определяется **правами, которые пользователь получает через свои роли**:
+
+```
+User ──< UserRole >── Role ──< RolePermission >── Permission
+```
+
+Пользователь может иметь **несколько ролей**, и его действующие права — это **объединение**
+всех прав всех его ролей. Право обозначается точечным кодом (`code`), например `mock.view`;
+именно этот код проверяет эндпоинт.
+
+| Таблица | Ключевые поля |
+| --- | --- |
+| `Role` | `name` (уникально), `description` |
+| `Permission` | `code` (уникально), `name`, `description` |
+| `UserRole` | `user`, `role` — пара уникальна |
+| `RolePermission` | `role`, `permission` — пара уникальна |
+
+Это собственные таблицы проекта, к системе прав `django.contrib.auth` они отношения не имеют.
+
+### Как проверяются права
+
+1. Запрос приходит с заголовком `Authorization: Bearer <access>`.
+2. SimpleJWT проверяет подпись и срок действия токена и отклоняет его, если пользователь
+   неактивен. Токена нет или он неверный → **401 Unauthorized**.
+3. Эндпоинт вычисляет коды прав пользователя, проходя цепочку
+   `User → UserRole → Role → RolePermission → Permission.code`.
+4. Если нужного кода в этом наборе нет → **403 Forbidden**.
+5. Иначе выдаётся запрошенный ресурс.
+
+Разделение 401/403 сделано намеренно: **401** значит «мы не знаем, кто вы», **403** — «мы знаем,
+кто вы, и вам этого нельзя».
+
+В коде — хелперы в `apps/rbac/services.py`, классы прав в `apps/rbac/permissions.py`:
+
+```python
+from apps.rbac.permissions import HasPermission, require_permissions
+
+class MockProjectsView(APIView):
+    permission_classes = [require_permissions('mock.view')]
+
+class RoleListView(APIView):                  # то же самое, но объявлено на view
+    permission_classes = [HasPermission]
+    required_permissions = 'role.view'
+
+require_permissions('role.view', 'role.manage')                     # нужны оба
+require_permissions('role.view', 'role.manage', require_all=False)  # достаточно любого
+```
+
+```python
+from apps.rbac.services import get_user_permission_codes, user_has_permission
+
+user_has_permission(request.user, 'mock.view')   # -> bool
+get_user_permission_codes(request.user)          # -> frozenset кодов
+```
+
+Вычисление прав пользователя стоит **один запрос к БД** независимо от количества ролей, а
+результат кешируется на время текущего запроса. `is_superuser` **не даёт обхода**: права берутся
+только из базы, поэтому суперпользователь без ролей не получит доступ никуда — это осознанное
+решение, чтобы `User → Roles → Permissions` был единственным путём авторизации.
+
+---
+
+## 4. Аутентификация
+
+JWT через `djangorestframework-simplejwt`. Сначала регистрация, затем login — он возвращает пару
+токенов. Access-токен отправляется в каждом последующем запросе:
+
+```
+Authorization: Bearer <access token>
+```
+
+**Регистрация** принимает имя, фамилию, отчество, email, пароль и повтор пароля:
+
+```json
+{
+  "first_name": "Иван",
+  "last_name": "Петров",
+  "middle_name": "Сергеевич",
+  "email": "ivan@example.com",
+  "password": "Password123!",
+  "confirm_password": "Password123!"
+}
+```
+
+Email проверяется на уникальность **без учёта регистра**, пароли должны совпадать, пароль
+проверяется валидаторами Django и хранится в виде хеша (pbkdf2).
+
+**Logout** заносит refresh-токен в чёрный список, и обменять его на новый access-токен больше
+нельзя. Сам access-токен продолжает действовать до истечения срока — это неотъемлемое свойство
+stateless JWT.
+
+**Удаление профиля (мягкое):** `is_active` становится `False`, но строка в базе остаётся. Все
+refresh-токены учётной записи заносятся в чёрный список, а текущий access-токен перестаёт
+работать немедленно, потому что SimpleJWT отклоняет токены неактивных пользователей. Войти
+повторно такая учётная запись уже не может.
+
+---
+
+## 5. Роли
+
+Только у роли **Admin** есть коды `role.view`/`role.manage`, поэтому на практике эти эндпоинты
+доступны лишь администратору. Но это следствие данных в таблицах, а не жёстко зашитая проверка:
+достаточно выдать `role.view` другой роли, и чтение откроется без изменения кода.
 
 ```bash
-GET /api/v1/permissions/?code=mock.view          # exact, case-insensitive
-GET /api/v1/permissions/?code_contains=manage    # substring
-GET /api/v1/permissions/?namespace=user          # everything under user.*
-GET /api/v1/permissions/?name=mock               # substring of the display name
-GET /api/v1/permissions/?role_name=Manager       # what a role holds
+GET /api/v1/roles/?page=2&page_size=5          # пагинация
+GET /api/v1/roles/?search=manager              # поиск по name и description
+GET /api/v1/roles/?ordering=-created_at        # name | created_at | updated_at, «-» — по убыванию
+```
+
+Поле `name` обязательное, обрезается по краям, максимум 100 символов и уникально **без учёта
+регистра** — `admin` будет отклонён, если уже есть `Admin`. Права роли (`permissions`) выдаются
+только на чтение; изменяются они через `assign-permission`.
+
+Удаление роли удаляет и её связи с правами, и её назначения пользователям (сами пользователи и
+права остаются). Удаление роли **Admin** лишит администратора всех прав и заблокирует API —
+восстановить можно командой `python manage.py seed_data`.
+
+---
+
+## 6. Права
+
+**Фильтрация** — точная, в отличие от `?search=`, который ищет нестрого по коду, названию и
+описанию:
+
+```bash
+GET /api/v1/permissions/?code=mock.view          # точное совпадение, без учёта регистра
+GET /api/v1/permissions/?code_contains=manage    # подстрока кода
+GET /api/v1/permissions/?namespace=user          # всё из пространства user.*
+GET /api/v1/permissions/?name=mock               # подстрока названия
+GET /api/v1/permissions/?role_name=Manager       # что есть у роли
 GET /api/v1/permissions/?role=<role-uuid>
-GET /api/v1/permissions/?unassigned=true         # granted by no role
+GET /api/v1/permissions/?unassigned=true         # права, не выданные ни одной роли
 GET /api/v1/permissions/?created_after=2026-01-01T00:00:00Z
-GET /api/v1/permissions/?search=deactivate       # loose, across three columns
+GET /api/v1/permissions/?search=deactivate       # нестрогий поиск по трём полям
 GET /api/v1/permissions/?ordering=-code          # code | name | created_at | updated_at
 ```
 
-`code` is **lowercased on write** and must be lowercase words joined by `.`, `_` or `-` — posting
-`Report.Export` stores `report.export`. This is not cosmetic: permission checks compare codes by
-exact string, so a stored `Report.Export` could never match a `report.export` check. Codes are unique
-case-insensitively.
+`code` **приводится к нижнему регистру при записи** и должен состоять из слов в нижнем регистре,
+разделённых `.`, `_` или `-`: отправите `Report.Export` — сохранится `report.export`. Это не
+косметика: проверка прав сравнивает коды строго по строке, поэтому запись `Report.Export` никогда
+не совпала бы с проверкой `report.export` и молча не работала бы.
 
-Deleting a permission revokes it from every role that held it; the roles survive. Any endpoint gated
-on the deleted code then denies everyone — `seed_data` restores the catalogue.
+Удаление права отзывает его у всех ролей (сами роли остаются). Любой эндпоинт, защищённый
+удалённым кодом, после этого закроется для всех — каталог восстанавливается через `seed_data`.
 
-## Assigning roles to users
+---
 
-One endpoint, three operations, split by HTTP verb. All require `role.manage`.
+## 7. Назначение ролей пользователям
 
-| Method | Endpoint | Does |
-| --- | --- | --- |
-| POST | `/api/v1/assign-role/` | **Adds** roles, keeping the ones already held |
-| PUT | `/api/v1/assign-role/` | **Replaces** — the user ends up with exactly the listed roles |
-| DELETE | `/api/v1/assign-role/` | **Removes** the listed roles, leaving the rest |
-
-All three take the same body:
+Один URL, три операции, разделённые HTTP-методом. Всем нужен `role.manage`.
 
 ```json
 { "user": "<user-uuid>", "roles": ["<role-uuid>", "<role-uuid>"] }
 ```
 
-and answer with the resulting state plus what changed:
+Ответ содержит итоговое состояние и то, что изменилось:
 
 ```json
 {
-  "user": { "id": "…", "email": "john@x.com", "full_name": "John Doe", "is_active": true },
-  "roles": ["Employee", "Manager"],
-  "added": ["Employee"],
-  "already_assigned": ["Manager"]
+  "success": true,
+  "message": "Roles assigned successfully.",
+  "data": {
+    "user": { "id": "…", "email": "john@x.com", "full_name": "John Doe", "is_active": true },
+    "roles": ["Employee", "Manager"],
+    "added": ["Employee"],
+    "already_assigned": ["Manager"]
+  }
 }
 ```
 
-PUT reports `added` / `removed` / `unchanged`; DELETE reports `removed` / `not_assigned`.
+PUT сообщает `added` / `removed` / `unchanged`; DELETE — `removed` / `not_assigned`.
 
-**Idempotent.** Assigning a role the user already holds, or removing one they never had, is a no-op
-reported in the response rather than an error — so retries are safe.
+**Идемпотентность.** Назначение роли, которая уже есть, или снятие роли, которой нет, — не ошибка,
+а сообщение в ответе. Повторять запросы безопасно.
 
-**Validation.** The user and every role must exist, ids may not repeat within one request, and
-`roles` may not be empty (except on PUT, where an empty list is how you strip every role). A single
-unknown id rejects the whole request: the writes are transactional, so a half-valid payload lands
-nothing.
+**Валидация.** Пользователь и все роли должны существовать, идентификаторы не должны повторяться
+внутри одного запроса, список `roles` не может быть пустым (кроме PUT — там пустой список снимает
+все роли). Один неизвестный id отклоняет весь запрос: запись идёт в транзакции, поэтому частично
+верные данные не сохранятся.
 
-## Assigning permissions to roles
+---
 
-Same shape, one level up the chain. All require `permission.manage`.
+## 8. Назначение прав ролям
 
-| Method | Endpoint | Does |
-| --- | --- | --- |
-| POST | `/api/v1/assign-permission/` | **Adds** permissions, keeping the ones already carried |
-| PUT | `/api/v1/assign-permission/` | **Replaces** — the role ends up carrying exactly the listed permissions |
-| DELETE | `/api/v1/assign-permission/` | **Removes** the listed permissions, leaving the rest |
+Та же схема на уровень выше. Всем операциям нужен `permission.manage`.
 
 ```json
-{ "role": "<role-uuid>", "permissions": ["<permission-uuid>", "<permission-uuid>"] }
+{ "role": "<role-uuid>", "permissions": ["<permission-uuid>"] }
 ```
 
-```json
-{
-  "role": { "id": "…", "name": "Guest" },
-  "permissions": ["mock.view", "role.view"],
-  "added": ["role.view"],
-  "already_assigned": ["mock.view"]
-}
-```
+### Изменения применяются немедленно
 
-PUT reports `added` / `removed` / `unchanged`; DELETE reports `removed` / `not_assigned`. Idempotent
-and validated exactly as assign-role above.
-
-### Changes take effect immediately
-
-Every user holding the role sees the change on their **very next request** — no re-login, no token
-refresh, no cache to wait out:
+Каждый пользователь с этой ролью увидит изменение на **следующем же запросе** — без повторного
+входа, без обновления токена:
 
 ```
-GET /api/v1/roles/   with a Guest's token        -> 403
-POST /api/v1/assign-permission/  grant role.view to Guest
-GET /api/v1/roles/   same token, unchanged       -> 200
-DELETE /api/v1/assign-permission/  revoke it
-GET /api/v1/roles/   same token, unchanged       -> 403
+GET /api/v1/roles/   с токеном Guest'а        -> 403
+POST /api/v1/assign-permission/  выдаём Guest роли право role.view
+GET /api/v1/roles/   тот же самый токен       -> 200
+DELETE /api/v1/assign-permission/  забираем право
+GET /api/v1/roles/   тот же самый токен       -> 403
 ```
 
-This is a property of the design rather than an extra mechanism: permission codes are read from the
-database on each request and memoised only for that request's lifetime, so there is no stale state
-to invalidate across requests. The JWT carries identity, never permissions — which is exactly why a
-token issued before the grant still picks it up.
+Это свойство архитектуры, а не отдельный механизм: коды прав читаются из базы на каждом запросе и
+кешируются только на время этого запроса, поэтому устаревшему состоянию между запросами взяться
+неоткуда. **JWT несёт идентификацию, а не права** — именно поэтому токен, выданный до выдачи
+права, его подхватывает.
 
-## Response format
+---
 
-**Every** response from every endpoint uses one of two envelopes, and nothing else.
+## 9. Mock-объекты бизнес-приложения
 
-Success:
+Вымышленные объекты, на которых показана работа системы разграничения доступа. **Таблиц в БД
+нет** — данные статические, ответ представляет собой обычный массив.
+
+```bash
+GET /api/v1/mock/projects/
+{"success": true, "message": "Projects retrieved successfully.",
+ "data": [{"id": 1, "name": "CRM"}, {"id": 2, "name": "ERP"}]}
+
+GET /api/v1/mock/orders/
+{"success": true, "message": "Orders retrieved successfully.",
+ "data": [{"id": 100, "price": 500}]}
+```
+
+Это те эндпоинты, до которых может дотянуться **не администратор**, поэтому на них правила RBAC
+видны нагляднее всего. С данными из `seed_data`:
+
+| Кто обращается | Результат |
+| --- | --- |
+| Аноним (без токена) | **401** |
+| Guest (роль без прав) | **403** |
+| Employee (`mock.view`) | **200** |
+| Manager (`mock.view`, `user.view`) | **200** |
+| Admin (все 8 прав) | **200** |
+
+---
+
+## 10. Формат ответа
+
+**Любой** ответ любого эндпоинта — это один из двух конвертов, третьего не бывает.
+
+Успех:
 
 ```json
 { "success": true, "message": "Roles retrieved successfully.", "data": { } }
 ```
 
-Failure:
+Ошибка:
 
 ```json
 { "success": false, "message": "Validation failed.", "errors": { "name": ["This field may not be blank."] } }
 ```
 
-`success` tells a client which shape it is holding without inspecting the status code. `data` is the
-payload — an object, an array, or `{}` when there is nothing to return. `errors` carries field-scoped
-detail and is `{}` for failures with no per-field breakdown. The two never mix: a success body has no
-`errors` key, a failure body has no `data` key.
+`success` позволяет клиенту понять форму ответа, не разбирая код статуса. `data` — полезная
+нагрузка: объект, массив или `{}`, если возвращать нечего. `errors` — детализация по полям, `{}`
+для ошибок без разбивки по полям. Конверты не смешиваются: в успешном ответе нет ключа `errors`,
+в ошибочном — нет `data`.
 
-List endpoints keep their pagination **inside** `data`:
+У списочных эндпоинтов пагинация лежит **внутри** `data`:
 
 ```json
 {
@@ -254,217 +442,165 @@ List endpoints keep their pagination **inside** `data`:
 }
 ```
 
-Applied by `api/renderers.py` (successes) and `api/exceptions.py` (failures) — not by individual
-views, so DRF's own generic machinery is covered by the same rule and a new endpoint cannot forget it.
+Конверт накладывается в `api/renderers.py` (успех) и `api/exceptions.py` (ошибки), а не в самих
+view — поэтому под то же правило попадают и generic-классы DRF, и новый эндпоинт не сможет о нём
+забыть.
 
-### Deletes and logout answer 200, not 204
+### Удаление и logout отвечают 200, а не 204
 
-HTTP forbids a body on `204`/`205`, so those four endpoints would have been the one exception to the
-format. They return **200** with the envelope instead:
+HTTP запрещает тело у ответов `204`/`205`, поэтому такие эндпоинты стали бы единственным
+исключением из формата. Вместо этого они возвращают **200** с конвертом:
 
 ```json
 { "success": true, "message": "Role deleted successfully.", "data": {} }
 ```
 
-Affects `DELETE /auth/profile/`, `POST /auth/logout/`, `DELETE /roles/{id}/`, `DELETE
-/permissions/{id}/`. Nothing else about them changed.
+Касается `DELETE /auth/profile/`, `POST /auth/logout/`, `DELETE /roles/{id}/`,
+`DELETE /permissions/{id}/`. Больше в них ничего не изменилось.
 
-## Error responses
+### Таблица ошибок
 
-`message` is a human-readable sentence; `errors` carries the field-scoped detail.
-
-| Situation | Status | `message` | `errors` |
+| Ситуация | Код | `message` | `errors` |
 | --- | --- | --- | --- |
-| No or invalid token | 401 | `Authentication credentials were not provided.` | `{}` |
-| Authenticated, permission missing | 403 | `This action requires the role.view permission.` | `{}` |
-| Validation failed | 400 | `Validation failed.` | `{"name": ["This field may not be blank."]}` |
-| Unknown id | 404 | `No Role matches the given query.` | `{}` |
-| Wrong method | 405 | `Method "POST" not allowed.` | `{}` |
-| Unhandled exception | 500 | `Internal server error.` | `{}` |
+| Нет токена или он неверный | 401 | `Authentication credentials were not provided.` | `{}` |
+| Есть токен, но нет права | 403 | `This action requires the role.view permission.` | `{}` |
+| Ошибка валидации | 400 | `Validation failed.` | `{"name": ["This field may not be blank."]}` |
+| Неизвестный id | 404 | `No Role matches the given query.` | `{}` |
+| Неверный метод | 405 | `Method "POST" not allowed.` | `{}` |
+| Необработанное исключение | 500 | `Internal server error.` | `{}` |
 
-Implemented in `api/exceptions.py`, wired via `REST_FRAMEWORK['EXCEPTION_HANDLER']`.
+**Ответ 500 никогда не раскрывает внутренности.** Тип исключения, сообщение и traceback уходят в
+лог `api.exceptions`, клиент видит только общую фразу. Поэтому лог — единственная запись о сбое:
+в production логирование должно быть настроено.
 
-**A 500 never leaks internals.** The exception message, its type and the traceback go to the logger
-under `api.exceptions`; the caller only ever sees the generic sentence above. That makes the log the
-*only* record of a crash — keep logging configured in production.
+---
 
-Successful responses are untouched: the envelope applies to errors only.
-
-## Mock business resources
-
-Stand-ins for real business objects, used to show RBAC gating ordinary endpoints. **No database
-tables** — the payloads are static constants, and the responses are bare JSON arrays.
-
-| Method | Endpoint | Permission |
-| --- | --- | --- |
-| GET | `/api/v1/mock/projects/` | `mock.view` |
-| GET | `/api/v1/mock/orders/` | `mock.view` |
-| GET | `/api/v1/mock/employees/` | `mock.view` |
-| GET | `/api/v1/mock/documents/` | `mock.view` |
-
-```bash
-GET /api/v1/mock/projects/
-[{"id": 1, "name": "CRM"}, {"id": 2, "name": "ERP"}]
-
-GET /api/v1/mock/orders/
-[{"id": 100, "price": 500}]
-```
-
-These are the endpoints a **non-administrator** can actually reach, so they are the clearest
-demonstration of the RBAC rules. With the seeded data:
-
-| Caller | Result |
-| --- | --- |
-| Anonymous | **401** |
-| Guest (role with no permissions) | **403** |
-| Employee (`mock.view`) | **200** |
-| Manager (`mock.view`, `user.view`) | **200** |
-| Admin (all eight) | **200** |
-
-
-
-## RBAC
-
-Authorization is driven by permissions the user holds through their roles:
-
-```
-User ──< UserRole >── Role ──< RolePermission >── Permission
-```
-
-A user may hold **several roles**, and their effective permissions are the **union** of every
-permission granted to those roles. Permissions are identified by a dotted `code` such as `mock.view`;
-that code is what an endpoint checks.
-
-| Model | Key fields |
-| --- | --- |
-| `Role` | `name` (unique), `description` |
-| `Permission` | `code` (unique), `name`, `description` |
-| `UserRole` | `user`, `role` — unique together |
-| `RolePermission` | `role`, `permission` — unique together |
-
-These are the project's own tables and have nothing to do with `django.contrib.auth`'s permission
-system.
-
-### How permissions are checked
-
-1. The request arrives with `Authorization: Bearer <access>`.
-2. SimpleJWT validates the token's signature and expiry, and rejects it if the user is inactive.
-   No/invalid token → **401 Unauthorized**.
-3. The endpoint resolves the user's permission codes by walking
-   `User → UserRole → Role → RolePermission → Permission.code`.
-4. If the required code is missing from that set → **403 Forbidden**.
-
-The 401/403 split is deliberate: **401** means *we do not know who you are*; **403** means *we know
-who you are and you may not do this*.
-
-In code — helpers in `apps/rbac/services.py`, permission classes in `apps/rbac/permissions.py`:
-
-```python
-from apps.rbac.permissions import HasPermission, require_permissions
-
-class MockProjectsView(APIView):
-    permission_classes = [require_permissions('mock.view')]
-
-class RoleListView(APIView):                 # equivalent, declared on the view
-    permission_classes = [HasPermission]
-    required_permissions = 'role.view'
-
-require_permissions('role.view', 'role.manage')                    # needs both
-require_permissions('role.view', 'role.manage', require_all=False)  # needs either
-```
-
-```python
-from apps.rbac.services import get_user_permission_codes, user_has_permission
-
-user_has_permission(request.user, 'mock.view')   # -> bool
-get_user_permission_codes(request.user)          # -> frozenset of codes
-```
-
-Resolving a user's permissions costs **one query** however many roles they hold, and the result is
-memoised on the user instance for the rest of the request. `is_superuser` is not consulted.
-
-## Seed command
+## 11. Команда seed_data
 
 ```bash
 cd src
 python manage.py seed_data
 ```
 
-Creates four roles, eight permissions, the grants between them, and the administrator account.
-**Idempotent** — running it any number of times reuses existing rows and never creates duplicates.
+Создаёт четыре роли, восемь прав, связи между ними и администратора. **Идемпотентна**: сколько
+бы раз её ни запускали, существующие записи переиспользуются, дубликаты не создаются.
 
-Roles and their permissions after seeding:
+Роли и их права после заполнения:
 
-| Role | Permissions |
+| Роль | Права |
 | --- | --- |
-| **Admin** | all eight |
+| **Admin** | все восемь |
 | **Manager** | `mock.view`, `user.view` |
 | **Employee** | `mock.view` |
-| **Guest** | none |
+| **Guest** | нет |
 
-The eight permission codes: `user.view`, `user.update`, `user.delete`, `role.view`, `role.manage`,
+Восемь кодов прав: `user.view`, `user.update`, `user.delete`, `role.view`, `role.manage`,
 `permission.view`, `permission.manage`, `mock.view`.
 
-The command also creates `admin@gmail.com` / `admin123` as a superuser **and grants it the Admin
-role**. That grant is what gives the account its power: authorization is decided purely by the RBAC
-tables, and `is_superuser` confers no API permissions on its own — a superuser holding no roles is
-denied every permission-gated endpoint. If the account already exists, the command leaves its
-password alone and only ensures the flags and the role.
+Команда также создаёт `admin@gmail.com` / `admin123` как суперпользователя **и выдаёт ему роль
+Admin**. Именно эта роль и даёт ему полномочия: авторизация решается только таблицами RBAC, а
+`is_superuser` сам по себе прав в API не даёт — суперпользователь без ролей не пройдёт ни на один
+защищённый эндпоинт. Если учётная запись уже существует, команда не трогает её пароль, а лишь
+проверяет флаги и роль.
 
-The catalogue in `apps/rbac/management/commands/seed_data.py` is the source of truth: re-running the
-command restores any role/permission description that was edited elsewhere, and re-creates any
-declared grant that was removed.
+Каталог в `apps/rbac/management/commands/seed_data.py` — источник истины: повторный запуск
+восстановит изменённое описание роли или права и заново создаст удалённую связь.
 
-By default the command only ever **adds** grants, so a permission granted by hand is never silently
-revoked. To reconcile exactly to the declared catalogue and drop undeclared grants:
+По умолчанию команда только **добавляет** связи, поэтому выданное вручную право не будет молча
+отозвано. Чтобы привести состояние ровно к описанному в каталоге и убрать лишнее:
 
 ```bash
 python manage.py seed_data --prune
 ```
 
-## Postman
+---
 
-`postman-workflows.json` + `postman-variables.json` exercise the whole API.
+## 12. Postman
 
-1. Import `postman-variables.json` as an **environment** and select it.
-2. Import `postman-workflows.json` as a **collection**.
-3. Run **1. Auth > Login (admin)** — it stores the token pair; every admin request picks it up
-   automatically via collection-level bearer auth.
+В репозитории две коллекции: `postman-workflows.json` (запросы) и `postman-variables.json`
+(окружение).
 
-Or run the lot headless:
+### Как пользоваться
+
+1. Откройте Postman.
+2. **Import** → выберите `src/postman-variables.json`. Это **окружение** — выберите его в
+   выпадающем списке справа сверху.
+3. **Import** → выберите `src/postman-workflows.json`. Это **коллекция**.
+4. Убедитесь, что сервер запущен (`python manage.py runserver`) и данные заполнены
+   (`python manage.py seed_data`).
+5. Выполните запрос **1. Auth → Login (admin)**.
+
+Больше ничего вручную вводить не нужно: скрипт этого запроса сам сохраняет пару токенов в
+переменные окружения, а авторизация уровня коллекции подставляет access-токен во все запросы
+администратора. Идентификаторы ролей и прав тоже подхватываются автоматически — папки
+рассчитаны на выполнение **сверху вниз**, каждая сохраняет то, что понадобится следующей.
+
+### Что внутри
+
+| Папка | Запросов | Что показывает |
+| --- | --- | --- |
+| **1. Auth** | 11 | Регистрация → login → профиль → обновление → logout → мягкое удаление → доказательство, что войти больше нельзя |
+| **2. Roles (admin)** | 9 | CRUD ролей, поиск, сортировка, пагинация, ошибка на дубликат имени |
+| **3. Permissions (admin)** | 11 | CRUD прав, все шесть фильтров, ошибка на неверный код |
+| **4. Assignment (admin)** | 8 | Назначение/замена/снятие ролей и прав, идемпотентность |
+| **5. Mock business objects** | 4 | Четыре mock-эндпоинта |
+| **6. 401 / 403 / 404 / 405** | 7 | Правила доступа из ТЗ в явном виде |
+
+Всего **50 запросов и 107 проверок**. Проверяется не только код ответа, но и конверт
+(`success`/`message`/`data`), поэтому коллекция заодно работает как smoke-тест контракта.
+
+### Запуск целиком из консоли
 
 ```bash
 npx newman run src/postman-workflows.json -e src/postman-variables.json
 ```
 
-Six folders, 50 requests, 107 assertions — each folder captures the ids the next needs (role_id,
-permission_id, demo_user_id…), so the collection runs top-to-bottom with nothing pasted by hand, and
-is safe to re-run. Folder 6 demonstrates the 401/403/404/405 rules directly.
+Коллекцию можно запускать **повторно**: регистрация каждый раз генерирует уникальный email, а
+созданные роли и права удаляются в конце своих папок, так что заполненные данные остаются в
+исходном состоянии.
 
-## Development
+> Файл `postman-workflows-usage.gif` устарел — на нём показан старый OTP-сценарий шаблона,
+> которого в проекте больше нет.
 
-Both tools run from the repository root:
+---
+
+## 13. Разработка
+
+Тесты и линтер запускаются **из корня репозитория**, а не из `src/`:
 
 ```bash
-pytest              # requires PostgreSQL; creates test_<DB_NAME>
-ruff check .
+pytest                 # 455 тестов; нужен доступный PostgreSQL
+ruff check .           # должен вывести "All checks passed!"
+ruff check . --fix     # безопасные автоисправления
 ```
 
-## Project layout
+Для тестов нужна роль PostgreSQL с правом `CREATEDB` — pytest-django создаёт базу
+`test_<DB_NAME>`.
+
+---
+
+## 14. Структура проекта
 
 ```
 src/
-  api/                  HTTP layer — routing, views, serializers. Not Django apps.
-    auth/               register, login, logout, profile
-    user/               roles, permissions, assign-role, assign-permission, mock
-    exceptions.py       error envelope   -> REST_FRAMEWORK['EXCEPTION_HANDLER']
-    renderers.py        success envelope -> DEFAULT_RENDERER_CLASSES
-    schema.py           Swagger envelope -> SPECTACULAR POSTPROCESSING_HOOKS
+  api/                  HTTP-слой: маршруты, view, сериализаторы. Django-приложениями не является.
+    auth/               регистрация, login, logout, профиль
+    user/               роли, права, назначения, mock
+    exceptions.py       конверт ошибок  -> REST_FRAMEWORK['EXCEPTION_HANDLER']
+    renderers.py        конверт успеха  -> DEFAULT_RENDERER_CLASSES
+    schema.py           конверт в Swagger -> SPECTACULAR POSTPROCESSING_HOOKS
     pagination.py       CustomPagination -> DEFAULT_PAGINATION_CLASS
-  apps/                 Django apps — models and migrations
-    users/              the custom User model
+  apps/                 Django-приложения: модели и миграции
+    users/              модель User
     rbac/               Role/Permission/UserRole/RolePermission, services,
-                        permission classes, seed_data command
-  config/               settings (base/development/production), urls, wsgi/asgi
+                        классы прав, команда seed_data
+  config/               настройки (base/development/production), urls, wsgi/asgi
   requirements/         common.txt <- dev.txt / production.txt
 ```
+
+Правило: модель или миграция → `src/apps/<домен>/`; URL, view или сериализатор →
+`src/api/<аудитория>/`. Зависимость односторонняя: `api/` импортирует из `apps/`, но никогда
+наоборот.
+
+Production разворачивается через gunicorn: `deployment/gunicorn.service` + `gunicorn.socket` за
+`deployment/nginx.conf`.
