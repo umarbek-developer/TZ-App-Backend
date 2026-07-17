@@ -35,42 +35,43 @@ pytest green, ruff clean, git commit.
 
 ---
 
-## 2. Placement (per your directives + template conventions)
+## 2. Placement — DONE
 
-- [ ] **P1** — Models live in `src/apps/`. New Django apps: `apps.accounts` (User, RevokedToken) and
-      `apps.rbac` (Role, Permission, RolePermission, UserRole). Registered in `INSTALLED_APPS` as
-      `'apps.accounts'` / `'apps.rbac'`.
-- [ ] **P2** — The backend (HTTP layer) lives inside `src/api/`. Per directive: serializers in
-      `src/api/user/serializers/`, views in `src/api/user/views/`, backend URLs in
-      `src/api/user/urls.py`.
-- [ ] **P3** — `src/api/urls.py` is the main API urlconf that aggregates the rest. *(Reading of
-      "amin urls" as "main urls" — see §9 Q1.)*
-- [ ] **P4** — `mock` needs no models (assignment: "No database needed"), so it is HTTP-only: views
-      under `src/api/user/views/`, no app under `src/apps/`.
-- [ ] **P5** — Custom auth middleware + JWT + bcrypt helpers live in `apps/accounts/`
-      (`middleware.py`, `tokens.py`, `passwords.py`) since they are imported by settings, not by a
-      view.
-- [ ] **P6** — Permission-checking classes live in `apps/rbac/permissions.py`, consumed by
-      `src/api/user/views/`.
+- [x] **P1** — Models live in `src/apps/`: `apps.users` (the existing `User`, kept per the owner's
+      "DO NOT recreate models") and `apps.rbac` (Role, Permission, UserRole, RolePermission).
+      ⚠️ `apps.accounts` from the original plan was **never created** — C1/C10 made it moot.
+- [x] **P2** — The backend lives inside `src/api/`: serializers in `src/api/user/serializers/`,
+      views in `src/api/user/views/`, URLs in `src/api/user/urls.py`, per directive.
+- [x] **P3** — `src/api/urls.py` is the main API urlconf and mounts the docs.
+- [x] **P4** — `mock` has no models: views only, in `src/api/user/views/mock_views.py`.
+- [x] **P5** — ~~Custom middleware/JWT/bcrypt in `apps/accounts/`~~ **Cancelled** (C1/C4). SimpleJWT
+      provides authentication; no custom middleware exists.
+- [x] **P6** — Permission classes in `apps/rbac/permissions.py`, consumed by `src/api/user/views/`.
 
 ---
 
-## 3. Data model
+## 3. Data model — DONE
 
-- [ ] **D1** — `User`: `id`, `first_name`, `last_name`, `middle_name`, `email` (unique), `password`,
-      `is_active`, `is_staff`, `is_superuser`, `created_at`, `updated_at`.
-- [ ] **D2** — `User` must **not** inherit `AbstractUser`/`AbstractBaseUser`/`PermissionsMixin`
-      (C10). Plain `models.Model`.
-- [ ] **D3** — `User.id` is an **integer** PK — the assign-role payload (`"user":1`) and
-      assign-permission payload (`"permissions":[5,6,7]`) are integers. *(The old template `User`
-      used a UUID PK; that app is being replaced — see §8.)*
-- [ ] **D4** — `User.password` stores a **bcrypt** hash (C4).
-- [ ] **D5** — `Role`: `id`, `name`, `description`.
-- [ ] **D6** — `Permission`: `id`, `code`, `name`, `description`.
-- [ ] **D7** — `RolePermission`: M2M `role` ↔ `permission`.
-- [ ] **D8** — `UserRole`: M2M `user` ↔ `role`. A user may hold several roles.
-- [ ] **D9** — `RevokedToken`: stores `jti` (unique, indexed) + revocation timestamp. Required by
-      the constraints; has no counterpart in the assignment (C2).
+- [x] **D1** — `User`: `id`, `first_name`, `last_name`, `middle_name`, `email` (unique), `password`,
+      `is_active`, `is_staff`, `is_superuser`. ⚠️ `created_at`/`updated_at` do not exist; the
+      inherited `date_joined` serves instead. `middle_name` was added (migration `0016`) — the
+      assignment's register payload needs it and the model had no such field.
+- [x] **D2** — ~~`User` must not inherit `AbstractUser`~~ **Cancelled** (C10). It does, per the
+      owner's "DO NOT recreate models".
+- [x] **D3** — ⚠️ `User.id` is a **UUID**, not the integer the assignment's `{"user":1}` implies.
+      Owner's instruction ("UUID id") supersedes; `Role`/`Permission` match.
+- [x] **D4** — ~~bcrypt~~ **Cancelled** (C4). Django `pbkdf2_sha256` via `set_password()`.
+- [x] **D5** — `Role`: `id` (UUID), `name` (unique), `description`, `created_at`, `updated_at`.
+- [x] **D6** — `Permission`: `id` (UUID), `code` (unique), `name`, `description`, timestamps.
+- [x] **D7** — `RolePermission`: role ↔ permission, unique together.
+- [x] **D8** — `UserRole`: user ↔ role, unique together. A user may hold several roles.
+- [x] **D9** — ~~`RevokedToken`~~ **Cancelled** (C2). SimpleJWT's `token_blacklist` app instead.
+
+⚠️ **Still present, dead:** `apps/users` also carries four unused template models —
+`UserOTPVerifications`, `UserOTPIDVerifications`, `ChangePasswordLogs`, `ChangeEmailLogs` (migrations
+`0002`–`0015`). Nothing references them; their methods have zero call sites. **Not removed:** they own
+real tables, so dropping them is a destructive migration, and the owner's "DO NOT recreate models"
+covers this app. See §9 Q16.
 
 ---
 
@@ -293,23 +294,46 @@ are module constants. All four gated on `mock.view`, held by Admin, Manager and 
 - [x] **T3** — ~~Remove `contrib.auth`~~ **Cancelled** (C10). `AUTH_PASSWORD_VALIDATORS` is now
       actively used by registration.
 - [x] **T4** — ~~Remove simplejwt~~ **Cancelled** (C1). Added `token_blacklist` to `INSTALLED_APPS`.
-- [ ] **T5** — Remove celery + redis (`config/celery.py`, `CELERY_*` settings, both packages).
-      `api/auth/tasks.py` is already deleted. Verified inert — nothing imports them.
-- [x] **T6** — `send_mail_sms.py` + `tasks.py` deleted. ⚠️ `templates/verify_email*.html` and the
-      `EMAIL_*` settings are now orphaned but harmless — left for the cleanup step.
-- [ ] **T7** — Drop the `TemplateView` index route + `templates/` + `static/` wiring, together.
+- [x] **T5** — **Done (audit).** Removed `config/celery.py`, all `CELERY_*` settings, and `celery` +
+      `redis` from `common.txt`. Verified inert first: the app import in `config/__init__.py` was
+      100% commented out, so `autodiscover_tasks()` never ran.
+- [x] **T6** — **Done (audit).** `send_mail_sms.py`/`tasks.py` deleted earlier; the audit removed the
+      orphaned `templates/verify_email*.html` and every `EMAIL_*` setting. Nothing in the codebase
+      sends mail (`grep` for `send_mail|EmailMessage|get_connection` → zero hits).
+- [x] **T7** — **Done (audit).** Dropped the `TemplateView` index route, `templates/`, `static/` and
+      `images/`. ⚠️ Worth knowing why: the scaffold's `index.html` served at `/` carried the template
+      author's own name and LinkedIn/GitHub links — shipping in this deliverable. `static/css` and
+      `static/js` were 0 bytes; `images/default.webp` was referenced nowhere.
 - [x] **T8** — Postgres forced: `base.py` raises `ImproperlyConfigured` unless `DB_TYPE == "psql"`;
       `.env`/`.env.example` updated; sqlite fallback gone.
 - [x] **T9** — `common.txt` normalized UTF-16LE → UTF-8. `pytest`, `pytest-django`, `ruff` added to
       `dev.txt`. (`bcrypt`/`PyJWT` not needed: superseded by C1/C4; PyJWT arrives via SimpleJWT.)
 - [x] **T10** — pytest + ruff configured in repo-root `pyproject.toml`.
-- [ ] **T11** — Decide the fate of `django.contrib.admin` + jazzmin (§9 Q4). Lower-stakes now.
+- [x] **T11** — **Resolved (audit): keep.** Not dead — `django.contrib.admin` hosts the RBAC model
+      admin (Role/Permission/UserRole/RolePermission, verified rendering), and jazzmin skins it.
+      `AbstractUser` stays, so `UserAdmin` still works. Closes Q4.
 - [x] **T12** — `cp .env.example .env` documented in `CLAUDE.md`, with the SECRET_KEY + createdb steps.
 - [x] **T13** — `drf-spectacular` wired: `/api/v1/schema/`, `/api/v1/docs/`, `/api/v1/redoc/`.
       Schema generates with 0 errors / 0 warnings.
 - [x] **T14** — **Security:** `SECRET_KEY` was the 4-character literal `test`, signing every JWT with
       a 4-byte HMAC key (PyJWT emitted `InsecureKeyLengthWarning`). Replaced with a generated 50-char
       key; `.env.example` now documents how to generate one.
+- [x] **T16** — **Audit removals** (all proven unused by grep before deletion): `apps/utils/` (one
+      abstract `BaseModel` nothing inherited — no tables, so no migration needed); `api/admin/`
+      (whose only route was a scaffold health-check absent from the assignment, and whose
+      `DefaultRouter` had zero registrations); the empty stubs `api/serializers.py`, `api/views.py`,
+      `api/{auth,user}/helpers.py`; the triplicated-but-unused `ReadOnly` permission and
+      `UserDeactivated` exception; `api/auth/filters.py` (a commented-out filter for a `Product`
+      model that never existed); `User.token()`; and the duplicate `ObjectPaginationClass` /
+      `ItemPagination`.
+- [x] **T17** — **Dead settings removed:** `BASE_URL`, `BASE_URL_LINK` (the latter pointed at a
+      `confirmations/` route deleted in T2) and the `EMAIL_*` block. All were `env()` with no
+      default — i.e. **mandatory `.env` entries for values nothing read**. `.env.example` now lists
+      only the 11 vars the settings actually consume, verified by booting a clean clone from it.
+- [x] **T18** — **Removed a throttle that only looked enforced:** `DEFAULT_THROTTLE_RATES =
+      {'login': '5/day'}` with `ScopedRateThrottle`, but **no view set `throttle_scope`**, so it was
+      a no-op. Login was never rate-limited. Deleted rather than left implying protection that did
+      not exist — see §9 Q14 if you want real rate limiting.
 - [x] **T15** — **Latent bug fixed:** `apps/utils/BaseModel.deleted_by` reused `updated_by`'s
       `related_name`. Dormant only because nothing inherits `BaseModel`; the first concrete subclass
       (i.e. the RBAC models) would have failed `fields.E304/E305` at startup.
@@ -348,10 +372,63 @@ are module constants. All four gated on `mock.view`, held by Admin, Manager and 
 - **Q12** — **The seed does not create the `admin@mail.com` / `password123` administrator.** The
   owner's instruction listed only roles/permissions/grants; the assignment asks for the account.
   Should `seed_data` create it (and if so, superuser or Admin-role-holder)?
+- **Q14** — **Login has no rate limiting.** The template's `DEFAULT_THROTTLE_RATES {'login': '5/day'}`
+  was a no-op (no view set `throttle_scope`) and was removed rather than left looking enforced.
+  Nothing in the assignment asks for throttling. Want real login throttling?
+- **Q15** — **`src/postman-workflows.json` is stale.** It documents 11 endpoints; **9 no longer
+  exist** (the OTP/change-email/forget-password flows deleted in T2), and `register`'s payload
+  changed. Importing it today would 404 on most requests. Delete, or regenerate against the current
+  API? (Swagger at `/api/v1/docs/` already covers documentation.)
+- **Q16** — **Four dead template models remain** in `apps/users`: `UserOTPVerifications`,
+  `UserOTPIDVerifications`, `ChangePasswordLogs`, `ChangeEmailLogs`. Provably unused, but they own
+  real tables (migrations `0002`–`0015`) and appear in the Django admin. Dropping them is a
+  destructive migration, so it needs your say-so.
+- **Q17** — **No token-refresh endpoint.** Login returns a refresh token, but the only thing that
+  consumes it is logout (blacklisting). The assignment never specifies `/auth/refresh/`. Access
+  tokens last 21 days (dev) / 1 day (prod), so nothing is broken — but the refresh token is
+  otherwise inert. Add `TokenRefreshView`?
 - **Q13** — **Permission codes diverge from the assignment.** The seed now uses `role.manage` and
   `permission.manage`, but the assignment's API Summary gates `POST/PATCH/DELETE /roles` on
   `role.update` and `POST/PATCH/DELETE /permissions` on `permission.update`. The API step needs to
   know which naming wins. Assumption: the newer `*.manage` codes.
+
+---
+
+## 9d. Full audit — DONE (commit: project audit)
+
+Verified, not assumed. Every claim below was produced by running something.
+
+| Area | Result |
+| --- | --- |
+| Imports | **100 modules imported cleanly**; no circular imports, no broken imports |
+| Migrations | No conflicts; **one leaf per app** (`users.0016`, `rbac.0001`, `token_blacklist.0013`); 47 applied, 0 unapplied; `makemigrations --check` clean |
+| PostgreSQL | Live on **PostgreSQL 16.14**, 20 tables; no sqlite fallback; a wrong `DB_TYPE` raises `ImproperlyConfigured` at startup |
+| Swagger | 14 paths / **28 operations**, 0 errors, 0 warnings, **0 non-conforming response schemas**, every operation has a summary |
+| PEP8 / ruff | `All checks passed!` (E,F,W,I,UP,B at line-length 100) |
+| Tests | **453 passing** on PostgreSQL |
+| Clean clone | `git archive` + `cp .env.example .env` + fill 2 values → `manage.py check` clean. Proves no setting reads a var the example omits |
+
+**Adversarial testing (real HTTP, real JWTs):**
+- Privilege escalation — all blocked: `is_staff`/`is_superuser` not writable via `PATCH /auth/profile/`;
+  self-assigning a role, granting a permission, creating/deleting a role, reading the catalogue → all 403.
+- Token abuse — all **401**: refresh-token-as-access, tampered signature, garbage token, `Bearer` with
+  no token, wrong scheme.
+- Fuzzing (21 malformed inputs: bad JSON, wrong types, 10k strings, SQL/XSS-ish, bad UUIDs, bad
+  paging/ordering/filters) — **zero 5xx**, every case a clean 4xx or a correct 200.
+- Full lifecycle: register → login → profile → patch → logout → refresh-reuse 400 → soft delete →
+  token dead 401 → login refused 401 → **row survives with `is_active=False`**.
+
+**Bugs found and fixed:**
+- **B1** — `api/renderers.py` decided "already enveloped?" by sniffing the body for a `success` key.
+  Any resource with a field of that name would silently lose the envelope, for that endpoint only.
+  Now a response flag; regression-tested both ways.
+- **B2** — The renderer wrapped any status < 400, including 3xx. Narrowed to 2xx.
+- **B3** — `test_mock.py` asserted `len(response.data) == 3` — but `response.data` is the 3-key
+  envelope, so it passed regardless of the payload. **Vacuous test**, now points at `data`.
+- **B4** — `api/pagination.py`'s `get_paginated_response_schema` omitted `pages`, which the response
+  actually returns: the published schema described a body the API does not send.
+- **B5** — `api/exceptions.py` used `logger.exception()`, relying on ambient `sys.exc_info()`. Now
+  passes `exc_info=exc` explicitly.
 
 ---
 

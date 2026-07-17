@@ -1,4 +1,3 @@
-# from pathlib import Path
 import os
 
 import environ
@@ -14,14 +13,7 @@ SECRET_KEY = env("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 
-DEBUG = env("DEBUG")
-BASE_URL = env("BASE_URL")
-
-
-if DEBUG == "1":
-    DEBUG = True
-else:
-    DEBUG = False
+DEBUG = env("DEBUG") == "1"
 
 # Application definition
 
@@ -42,7 +34,6 @@ INSTALLED_APPS = [
     'drf_spectacular',
 
     # own apps
-    'apps.utils',
     'apps.users',
     'apps.rbac',
 ]
@@ -60,10 +51,12 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 
+# The API itself renders no templates. This block exists for django.contrib.admin
+# and the drf-spectacular UIs, which ship their own — hence APP_DIRS with no DIRS.
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR, 'templates'],
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -80,6 +73,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
+# Enforced on registration by api.auth.serializers.user_serializers.RegisterSerializer.
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -114,12 +108,6 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.ScopedRateThrottle',
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'login': '5/day',
-    },
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     # Every error response goes out in one envelope. See api/exceptions.py.
     'EXCEPTION_HANDLER': 'api.exceptions.custom_exception_handler',
@@ -146,8 +134,6 @@ SPECTACULAR_SETTINGS = {
     ],
 }
 
-
-
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'Asia/Tashkent'
@@ -158,14 +144,12 @@ USE_TZ = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
+# The API serves no static assets of its own; this covers django.contrib.admin's.
 
 STATIC_URL = '/static/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-
-# Default primary key field type
-# https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 AUTH_USER_MODEL = 'users.User'
 
@@ -194,32 +178,3 @@ DATABASES = {
         "PORT": env("DB_PORT"),
     }
 }
-
-
-
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = env("EMAIL_HOST")
-EMAIL_HOST_PASSWORD = env("EMAIL_PASSWORD") # Generate in Gmail
-
-
-BASE_URL_LINK = env("BASE_URL_LINK")
-
-
-# CELERY SOZLAMALARI
-
-CELERY_BROKER_URL = 'redis://localhost:6379/0'  # yoki Docker bo'lsa: redis://redis_br:6379/0
-CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
-
-# Agar SQLite bazadan broker sifatida foydalanmoqchi bo'lsangiz:
-# CELERY_BROKER_URL = 'sqla+sqlite:///db.sqlite3'
-# CELERY_RESULT_BACKEND = 'db+sqlite:///db.sqlite3'
-
-CELERY_ACCEPT_CONTENT = ['application/json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_IGNORE_RESULT = False
-CELERY_TASK_SOFT_TIME_LIMIT = 60
-

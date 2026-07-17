@@ -270,3 +270,59 @@ def test_the_openapi_schema_endpoint_is_not_enveloped(client):
 
     assert response.status_code == 200
     assert b'openapi' in response.content[:200]
+
+
+# --- renderer edge cases -----------------------------------------------------
+
+
+def test_a_payload_containing_a_success_field_is_still_enveloped():
+    """Regression: the renderer must not decide by sniffing the body.
+
+    It once skipped wrapping anything that already had a 'success' key, so a
+    resource with a field of that name would silently lose the envelope — for that
+    endpoint only, which is the worst kind of inconsistency to debug.
+    """
+    import json
+
+    from rest_framework.permissions import AllowAny
+    from rest_framework.response import Response
+    from rest_framework.test import APIRequestFactory
+    from rest_framework.views import APIView
+
+    class SuccessFieldView(APIView):
+        permission_classes = [AllowAny]
+
+        def get(self, request):
+            return Response({'success': 'the deployment succeeded', 'id': 7})
+
+    response = SuccessFieldView.as_view()(APIRequestFactory().get('/'))
+    response.render()
+    body = json.loads(response.content)
+
+    assert set(body) == SUCCESS_KEYS
+    assert body['success'] is True
+    assert body['data'] == {'success': 'the deployment succeeded', 'id': 7}
+
+
+def test_rendering_twice_does_not_nest_the_envelope():
+    import json
+
+    from rest_framework.permissions import AllowAny
+    from rest_framework.response import Response
+    from rest_framework.test import APIRequestFactory
+    from rest_framework.views import APIView
+
+    class PlainView(APIView):
+        permission_classes = [AllowAny]
+
+        def get(self, request):
+            return Response({'id': 1})
+
+    response = PlainView.as_view()(APIRequestFactory().get('/'))
+    response.render()
+    response._is_rendered = False
+    response.render()
+
+    body = json.loads(response.content)
+    assert set(body) == SUCCESS_KEYS
+    assert body['data'] == {'id': 1}

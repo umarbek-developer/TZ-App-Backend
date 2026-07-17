@@ -435,14 +435,17 @@ ruff check .
 
 ```
 src/
-  api/            HTTP layer — routing, views, serializers. Not Django apps.
-    auth/         authentication endpoints
-    user/         end-user endpoints
-    admin/        staff endpoints
-  apps/           Django apps — models and migrations
-    users/        the custom User model
-    rbac/         Role, Permission, UserRole, RolePermission
-    utils/        shared model primitives
-  config/         settings (split base/development/production), urls, wsgi/asgi
-  requirements/   common.txt <- dev.txt / production.txt
+  api/                  HTTP layer — routing, views, serializers. Not Django apps.
+    auth/               register, login, logout, profile
+    user/               roles, permissions, assign-role, assign-permission, mock
+    exceptions.py       error envelope   -> REST_FRAMEWORK['EXCEPTION_HANDLER']
+    renderers.py        success envelope -> DEFAULT_RENDERER_CLASSES
+    schema.py           Swagger envelope -> SPECTACULAR POSTPROCESSING_HOOKS
+    pagination.py       CustomPagination -> DEFAULT_PAGINATION_CLASS
+  apps/                 Django apps — models and migrations
+    users/              the custom User model
+    rbac/               Role/Permission/UserRole/RolePermission, services,
+                        permission classes, seed_data command
+  config/               settings (base/development/production), urls, wsgi/asgi
+  requirements/         common.txt <- dev.txt / production.txt
 ```

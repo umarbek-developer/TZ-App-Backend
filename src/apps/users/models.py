@@ -5,7 +5,6 @@ from datetime import timedelta
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.utils import timezone
-from rest_framework_simplejwt.tokens import RefreshToken
 
 
 class CustomUserManager(BaseUserManager):
@@ -56,13 +55,6 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.full_name
-
-    def token(self):
-        refresh = RefreshToken.for_user(self)
-        return {
-            'refresh_token': str(refresh),
-            'access_token': str(refresh.access_token),
-        }
 
     def check_hash_password(self):
         if not self.password.startswith('pbkdf2_sha256'):

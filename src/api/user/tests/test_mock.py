@@ -87,14 +87,14 @@ def test_employees_payload(employee_client):
     response = employee_client.get(EMPLOYEES_URL)
 
     assert response.data['data'] == EMPLOYEES
-    assert len(response.data) == 3
+    assert len(response.data['data']) == 3
 
 
 def test_documents_payload(employee_client):
     response = employee_client.get(DOCUMENTS_URL)
 
     assert response.data['data'] == DOCUMENTS
-    assert len(response.data) == 3
+    assert len(response.data['data']) == 3
 
 
 @pytest.mark.parametrize(
@@ -113,8 +113,9 @@ def test_items_match_their_documented_shape(employee_client, url, keys):
 
 
 @pytest.mark.parametrize('url', ALL_URLS)
-def test_response_is_a_bare_array_not_a_paginated_envelope(employee_client, url):
-    """The spec shows a plain array; the project-wide pagination must not wrap it."""
+def test_payload_is_a_bare_array_not_a_paginated_page(employee_client, url):
+    """The spec shows a plain array. It travels under the response envelope's `data`
+    key like every other body, but the project-wide pagination must not page it."""
     data = employee_client.get(url).data['data']
 
     assert isinstance(data, list)

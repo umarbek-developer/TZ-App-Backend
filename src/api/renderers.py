@@ -37,9 +37,10 @@ _DEFAULT_MESSAGES = {
 _FALLBACK_MESSAGE = 'Request completed successfully.'
 
 
-def _is_enveloped(data):
-    """True if something already produced an envelope — don't wrap it twice."""
-    return isinstance(data, dict) and 'success' in data
+# Marks a response as already wrapped. A flag rather than sniffing the body for a
+# 'success' key: a resource that legitimately had a field of that name would
+# otherwise skip the envelope, silently and only for that endpoint.
+_WRAPPED_FLAG = '_envelope_applied'
 
 
 class EnvelopeJSONRenderer(JSONRenderer):
@@ -49,7 +50,7 @@ class EnvelopeJSONRenderer(JSONRenderer):
         renderer_context = renderer_context or {}
         response = renderer_context.get('response')
 
-        if self._should_wrap(data, response):
+        if self._should_wrap(response):
             data = {
                 'success': True,
                 'message': self._message(response, renderer_context),
@@ -61,18 +62,21 @@ class EnvelopeJSONRenderer(JSONRenderer):
             # Without this, `.data` would still hold the bare payload while the
             # client receives the envelope — two different answers to "what did this
             # endpoint return", and every test would assert the one nobody gets.
-            # Re-rendering is safe: _is_enveloped() makes the second pass a no-op.
             response.data = data
+            setattr(response, _WRAPPED_FLAG, True)
 
         return super().render(data, accepted_media_type, renderer_context)
 
-    def _should_wrap(self, data, response):
+    def _should_wrap(self, response):
         if response is None:
             return False
-        # 4xx/5xx already went through the exception handler.
-        if response.status_code >= 400:
+        # Only 2xx. 4xx/5xx are already enveloped by the exception handler, and a
+        # 3xx carries no body of ours to wrap.
+        if not 200 <= response.status_code < 300:
             return False
-        return not _is_enveloped(data)
+        # Rendering twice (e.g. a second read of .rendered_content) must not nest
+        # one envelope inside another.
+        return not getattr(response, _WRAPPED_FLAG, False)
 
     def _message(self, response, renderer_context):
         message = getattr(response, 'success_message', None)

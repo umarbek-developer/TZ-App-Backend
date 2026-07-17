@@ -36,10 +36,11 @@
 The Django project root is `src/`, not the repo root. `manage.py` lives at `src/manage.py`, and every
 relative path in the settings resolves from `src/`. `BASE_DIR` is computed in
 `src/config/settings/base.py` as three `dirname()` calls up from that file, which lands on `src/` —
-so `BASE_DIR` is `src/`, *not* the repo root. Anything reading `BASE_DIR` (`.env`, `media/`,
-`static/`) is therefore rooted at `src/`.
+so `BASE_DIR` is `src/`, *not* the repo root. Anything reading `BASE_DIR` (`.env`, `media/`) is
+therefore rooted at `src/`.
 
-The repo root holds only `README.md`, `.gitignore`, `deployment/`, and this file.
+The repo root holds only `.gitignore`, `pyproject.toml` (pytest + ruff), `deployment/`, `docs/`,
+`SPEC.md` and this file. **`README.md` lives at `src/README.md`.**
 
 ### Where Django apps live: `apps/` vs `api/`
 
@@ -47,48 +48,47 @@ These two trees are **not** parallel — they are two different layers, and only
 Django apps.
 
 **`src/apps/<name>/` — the Django apps (the only things in `INSTALLED_APPS`).**
-Each has `apps.py`, `models.py`, `migrations/`, `admin.py`, `tests.py`. These own persistence and
-domain logic. They are registered in `INSTALLED_APPS` under their dotted path *including* the `apps.`
-prefix — `'apps.users'`, `'apps.utils'` — because `src/` is the import root, not `src/apps/`.
+Each has `apps.py`, `models.py`, `migrations/`, `admin.py`. These own persistence and domain logic.
+They are registered in `INSTALLED_APPS` under their dotted path *including* the `apps.` prefix —
+`'apps.users'`, `'apps.rbac'` — because `src/` is the import root, not `src/apps/`.
 There is no `apps` package-level `AppConfig`; the label Django infers is the last segment
-(`users`, `utils`), which is why `AUTH_USER_MODEL` reads `'users.User'` and not `'apps.users.User'`.
+(`users`, `rbac`), which is why `AUTH_USER_MODEL` reads `'users.User'` and not `'apps.users.User'`.
 
-`apps/utils/` is the shared-primitives app: `BaseModel` (created_by/updated_by/deleted_by/is_deleted
-/created_at/updated_at, `abstract = True`) plus a `management/commands/` slot. It has no migrations
-of its own.
+- `apps/users/` — the custom `User` (UUID pk, email login).
+- `apps/rbac/` — `Role`, `Permission`, `UserRole`, `RolePermission`, plus `services.py` (permission
+  resolution), `permissions.py` (the DRF permission classes) and the `seed_data` command.
+
+*(The template's `apps/utils/` — one abstract `BaseModel` nothing inherited — was removed in the
+audit, along with the `api/admin/` audience package, whose only route was a scaffold health-check.)*
 
 **`src/api/<audience>/` — the HTTP layer. NOT Django apps.**
-None of `api/`, `api/admin/`, `api/auth/`, `api/user/` contain an `apps.py`, none contain models, and
-none appear in `INSTALLED_APPS`. They are plain Python packages holding routing and request/response
-code, sliced by **audience** rather than by domain:
+Neither `api/`, `api/auth/` nor `api/user/` contains an `apps.py` or a model, and none appear in
+`INSTALLED_APPS`. They are plain Python packages holding routing and request/response code:
 
-- `api/auth/` — unauthenticated + self-service account endpoints
-- `api/user/` — end-user endpoints (currently an empty router stub)
-- `api/admin/` — staff endpoints (note: this is the *API* admin surface, unrelated to
-  `django.contrib.admin`, which is mounted separately at `/admin/`)
+- `api/auth/` — register, login, logout, profile
+- `api/user/` — the RBAC backend: roles, permissions, assign-role, assign-permission, mock
 
-Each audience package follows the same fixed layout:
+Each audience package holds only what it uses:
 
 ```
 api/<audience>/
   urls.py            # path() list for this audience
   views/             # one module per use case, e.g. login_views.py
-  serializers/       # one module per resource, e.g. user_serializers.py
-  permissions.py
-  exceptions.py
-  filters.py
-  helpers.py
-  tests.py
+  serializers/       # one module per resource, e.g. role_serializers.py
+  filters.py         # only where there are filters (api/user/)
+  tests/             # one module per use case
 ```
 
-Cross-audience shared HTTP pieces sit at the `api/` top level: `api/pagination.py`
-(`CustomPagination`, wired as the DRF default), `api/serializers.py`, `api/views.py`.
+Cross-audience pieces sit at the `api/` top level, each wired through settings:
+`api/pagination.py` (`CustomPagination` → `DEFAULT_PAGINATION_CLASS`), `api/renderers.py`
+(success envelope → `DEFAULT_RENDERER_CLASSES`), `api/exceptions.py` (error envelope →
+`EXCEPTION_HANDLER`), `api/schema.py` (Swagger envelope → `POSTPROCESSING_HOOKS`).
 
 **Import direction is one-way:** `api/` imports from `apps/`; `apps/` must never import from `api/`.
 
-**URL mounting:** `config/urls.py` mounts `api.urls` at `/api/v1/`; `api/urls.py` mounts
-`api.admin.urls` at `admin/`, `api.user.urls` at `user/`, and `api.auth.urls` at the root. So a login
-route declared as `auth/login/` in `api/auth/urls.py` is served at `/api/v1/auth/login/`.
+**URL mounting:** `config/urls.py` mounts `api.urls` at `/api/v1/`; `api/urls.py` mounts both
+`api.user.urls` and `api.auth.urls` **at the root**, so the URLs match the spec
+(`/api/v1/auth/login/`, `/api/v1/roles/`). Their patterns do not overlap.
 
 **Rule of thumb for new code:** a model or migration goes in `src/apps/<domain>/`; a URL, view, or
 serializer goes in `src/api/<audience>/`. Anything with a model needs its app added to
@@ -128,14 +128,16 @@ It also prints which branch it took. **Default is development** — an absent `D
 
 `base.py` holds everything shared and re-runs `read_env(BASE_DIR/.env)` itself (the load happens
 twice; harmless but worth knowing). Every env var is read there through django-environ's
-`env("NAME")` — `SECRET_KEY`, `DEBUG`, `BASE_URL`, `BASE_URL_LINK`, `DB_*`, `EMAIL_HOST`,
-`EMAIL_PASSWORD`. `env("NAME")` with no default **raises `ImproperlyConfigured` if the var is
-missing**, so a var added to `base.py` must also be added to `src/.env.example`.
+`env("NAME")` — and the full list is now short: `SECRET_KEY`, `DEBUG`, `DB_TYPE`, `DB_NAME`,
+`DB_USER`, `DB_PASSWORD`, `DB_HOST`, `DB_PORT`, plus `ALLOWED_HOSTS`/`CSRF_TRUSTED_ORIGINS`/
+`CORS_ALLOWED_ORIGINS` in `production.py`. `env("NAME")` with no default **raises
+`ImproperlyConfigured` if the var is missing**, so a var added to `base.py` must also be added to
+`src/.env.example` — verified by booting a clean clone from the example alone.
 
 Two env-var quirks to respect:
 
-- `base.py` re-reads `DEBUG` as a **string** and compares `DEBUG == "1"`, while `__init__.py` casts
-  it with `int()`. Both must agree; `DEBUG=1` / `DEBUG=0` are the only safe values.
+- `base.py` reads `DEBUG` as a **string** and compares `DEBUG == "1"`, while `__init__.py` casts it
+  with `int()`. Both must agree; `DEBUG=1` / `DEBUG=0` are the only safe values.
 - Env-var-dependent settings are split by branch. `ALLOWED_HOSTS`, `CSRF_TRUSTED_ORIGINS`, and
   `CORS_ALLOWED_ORIGINS` are read **only in `production.py`** — those three vars are unused in dev
   (dev hardcodes `ALLOWED_HOSTS = ['*']` and allow-all CORS).
@@ -156,16 +158,15 @@ Requirements live at **`src/requirements/`** (under `src/`, not the repo root), 
 So: **runtime dep -> `common.txt`** (it reaches dev and prod through the `-r` chain).
 **Tooling that must never ship to prod -> `dev.txt`.**
 
-Concretely, for this project: `bcrypt`, `PyJWT`, `psycopg2-binary` go in `common.txt`;
-`pytest`, `pytest-django`, `ruff` go in `dev.txt`.
+Concretely: `psycopg2-binary` and `djangorestframework-simplejwt` are in `common.txt`;
+`pytest`, `pytest-django`, `ruff` are in `dev.txt`.
 
-Two live gotchas:
+`common.txt` was trimmed in the audit to only what the code imports or `INSTALLED_APPS` loads
+(`celery`, `redis`, `django-modeltranslation`, `requests` and `pytz` were template leftovers that
+nothing referenced). It was also re-encoded from **UTF-16LE to UTF-8** — the old encoding parsed
+under pip 24.0 but would corrupt on any naive shell append.
 
-- `common.txt` is encoded **UTF-16LE with a BOM and CRLF line endings**, unlike the other two
-  (ASCII). pip 24.0 parses it correctly (verified), so it is not currently broken — but any tool that
-  assumes UTF-8, and any naive `>>` append from a shell, will corrupt it. Normalize it to UTF-8
-  before editing.
-- Nothing is version-pinned. A fresh install resolves to latest (currently Django 6.0.7).
+Nothing is version-pinned. A fresh install resolves to latest (currently Django 6.0.7).
 
 ### How the server runs locally
 

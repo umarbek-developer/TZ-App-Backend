@@ -98,7 +98,14 @@ def _handle_unexpected(exc, context):
     page, so the logging here is the only record: do not remove it.
     """
     view = context.get('view') if context else None
-    logger.exception('Unhandled exception in %s', view.__class__.__name__ if view else 'view')
+    # exc_info=exc explicitly rather than letting logger.exception() read the
+    # ambient sys.exc_info(): that only works while an except block is on the
+    # stack, which is true today but is not this function's contract.
+    logger.error(
+        'Unhandled exception in %s',
+        view.__class__.__name__ if view else 'view',
+        exc_info=exc,
+    )
 
     return Response(
         {'success': False, 'message': _SERVER_ERROR_MESSAGE, 'errors': {}},

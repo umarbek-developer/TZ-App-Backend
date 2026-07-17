@@ -5,6 +5,12 @@ from rest_framework.response import Response
 
 
 class CustomPagination(PageNumberPagination):
+    """Project-wide pagination, wired as DEFAULT_PAGINATION_CLASS.
+
+    The page travels under the response envelope's `data` key, so a list body
+    reads `{"success": true, "message": "...", "data": {count, pages, results}}`.
+    """
+
     page_size_query_param = "page_size"
 
     def get_paginated_response(self, data, **kwargs):
@@ -18,35 +24,18 @@ class CustomPagination(PageNumberPagination):
     def get_paginated_response_schema(self, schema):
         return {
             'type': 'object',
+            'required': ['count', 'pages', 'results'],
             'properties': {
                 'count': {
                     'type': 'integer',
                     'example': 123,
                 },
+                # Declared because get_paginated_response returns it; without this
+                # the schema would advertise a body the API does not send.
+                'pages': {
+                    'type': 'integer',
+                    'example': 13,
+                },
                 'results': schema,
             },
         }
-
-
-class ObjectPaginationClass(PageNumberPagination):
-    page_size = 10
-
-    def get_paginated_response(self, data):
-        return Response({
-            'count': self.page.paginator.count,
-            'next': self.get_next_link(),
-            'previous': self.get_previous_link(),
-            'results': data,
-        })
-
-
-class ItemPagination(PageNumberPagination):
-    page_size = 10
-
-    def get_paginated_response(self, data):
-        return Response({
-            'count': self.page.paginator.count,
-            'next': self.get_next_link(),
-            'previous': self.get_previous_link(),
-            'results': data,
-        })

@@ -2,18 +2,13 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
-from django.views.generic import TemplateView
 
 urlpatterns = [
-    path('', TemplateView.as_view(
-        template_name='index.html'
-    )),
     path('api/v1/', include('api.urls')),
     path('admin/', admin.site.urls),
 ]
 
 if settings.DEBUG:
-    urlpatterns += [
-        *static(settings.STATIC_URL, document_root=settings.STATIC_ROOT),
-        *static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    ]
+    # Media only: contrib.staticfiles serves the admin's own assets while DEBUG
+    # is on, and this project ships no static files of its own.
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
